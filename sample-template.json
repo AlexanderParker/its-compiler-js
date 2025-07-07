@@ -1,0 +1,151 @@
+{
+    "$schema": "https://alexanderparker.github.io/instruction-template-specification/schema/v1.0/its-base-schema-v1.json",
+    "version": "1.0.0",
+    "description": "Sample template for generating product descriptions",
+    "extends": [
+        "https://alexanderparker.github.io/instruction-template-specification/schema/v1.0/its-standard-types-v1.json"
+    ],
+    "variables": {
+        "product": {
+            "name": "SmartWatch Pro",
+            "category": "wearable technology",
+            "price": 299,
+            "targetAudience": "fitness enthusiasts"
+        },
+        "features": [
+            "heart rate monitoring",
+            "GPS tracking",
+            "waterproof design",
+            "7-day battery life",
+            "sleep tracking"
+        ],
+        "includeSpecs": true,
+        "includePricing": false,
+        "tone": "professional",
+        "wordCount": "medium"
+    },
+    "content": [
+        {
+            "type": "text",
+            "text": "# ${product.name} - Product Description\n\n"
+        },
+        {
+            "type": "placeholder",
+            "instructionType": "paragraph",
+            "config": {
+                "description": "Write an engaging introduction for ${product.name}, a ${product.category} device designed for ${product.targetAudience}",
+                "tone": "${tone}",
+                "length": "${wordCount}"
+            }
+        },
+        {
+            "type": "text",
+            "text": "\n\n## Key Features\n\n"
+        },
+        {
+            "type": "placeholder",
+            "instructionType": "list",
+            "config": {
+                "description": "Create a compelling feature list highlighting these capabilities: ${features}",
+                "format": "bullet_points",
+                "itemCount": "${features.length}",
+                "style": "benefit-focused"
+            }
+        },
+        {
+            "type": "conditional",
+            "condition": "includeSpecs == true",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "\n\n## Technical Specifications\n\n"
+                },
+                {
+                    "type": "placeholder",
+                    "instructionType": "table",
+                    "config": {
+                        "description": "Generate technical specifications table for ${product.name} including dimensions, battery, connectivity, and compatibility",
+                        "format": "markdown_table",
+                        "columns": [
+                            "Specification",
+                            "Details"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "type": "conditional",
+            "condition": "product.targetAudience == 'fitness enthusiasts'",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "\n\n## Perfect for Your Fitness Journey\n\n"
+                },
+                {
+                    "type": "placeholder",
+                    "instructionType": "paragraph",
+                    "config": {
+                        "description": "Explain how ${product.name} enhances fitness routines and helps achieve health goals",
+                        "tone": "motivational",
+                        "length": "short"
+                    }
+                }
+            ],
+            "else": [
+                {
+                    "type": "text",
+                    "text": "\n\n## Why Choose ${product.name}?\n\n"
+                },
+                {
+                    "type": "placeholder",
+                    "instructionType": "paragraph",
+                    "config": {
+                        "description": "Highlight the unique value proposition of ${product.name}",
+                        "tone": "${tone}",
+                        "length": "short"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "conditional",
+            "condition": "includePricing == true && product.price > 0",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "\n\n## Pricing\n\n"
+                },
+                {
+                    "type": "text",
+                    "text": "**${product.name}** is available for ${product.price}.\n\n"
+                },
+                {
+                    "type": "placeholder",
+                    "instructionType": "paragraph",
+                    "config": {
+                        "description": "Write a compelling call-to-action for purchasing ${product.name} at ${product.price}",
+                        "tone": "persuasive",
+                        "length": "short"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "text",
+            "text": "\n\n---\n\n*Transform your ${product.category} experience with ${product.name}.*"
+        }
+    ],
+    "compilerConfig": {
+        "systemPrompt": "You are a professional product marketing copywriter. Create compelling, accurate product descriptions that highlight benefits and appeal to the target audience.",
+        "instructionWrapper": "<<{instruction}>>",
+        "processingInstructions": [
+            "Replace each placeholder marked with << >> with engaging marketing copy",
+            "Match the specified tone and length requirements",
+            "Focus on benefits rather than just features",
+            "Ensure consistency with the overall product positioning",
+            "Use persuasive but accurate language",
+            "Maintain the existing structure and formatting"
+        ]
+    }
+}
