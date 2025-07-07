@@ -1,7 +1,7 @@
 # ITS Compiler (JavaScript/TypeScript)
 
-[![npm version](https://badge.fury.io/js/its-compiler.svg)](https://badge.fury.io/js/its-compiler)
-[![Node.js Version](https://img.shields.io/node/v/its-compiler.svg)](https://nodejs.org)
+[![npm version](https://badge.fury.io/js/its-compiler-js.svg)](https://badge.fury.io/js/its-compiler-js)
+[![Node.js Version](https://img.shields.io/node/v/its-compiler-js.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A JavaScript/TypeScript compiler for the [Instruction Template Specification (ITS)](https://github.com/alexanderparker/instruction-template-specification) that converts templates with placeholders into structured AI prompts.
@@ -31,7 +31,7 @@ Compiles to a structured AI prompt that replaces `${topic}` with "climate change
 ## Installation
 
 ```bash
-npm install its-compiler
+npm install its-compiler-js
 ```
 
 ## Command Line Usage
@@ -94,7 +94,7 @@ npx its-compile template.json --development --watch --verbose
 ### Quick Start
 
 ```typescript
-import { ITSCompiler, compile } from 'its-compiler';
+import { ITSCompiler, compile } from 'its-compiler-js';
 
 // Quick compilation
 const result = await compile(templateObject, variables);
@@ -121,7 +121,7 @@ const validation = await validate(templateObject);
 ### Compiler Class
 
 ```typescript
-import { ITSCompiler } from 'its-compiler';
+import { ITSCompiler } from 'its-compiler-js';
 
 const compiler = new ITSCompiler(securityConfig);
 
@@ -154,7 +154,7 @@ interface CompilationResult {
 ### Error Handling
 
 ```typescript
-import { ITSValidationError, ITSCompilationError, ITSSecurityError } from 'its-compiler';
+import { ITSValidationError, ITSCompilationError, ITSSecurityError } from 'its-compiler-js';
 
 try {
   const result = await compiler.compileFile('template.json');

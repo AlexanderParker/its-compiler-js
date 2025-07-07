@@ -93,7 +93,7 @@ export class SchemaLoader {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'ITS-Compiler-JS/1.0',
+          'User-Agent': 'its-compiler-js/1.0',
           Accept: 'application/json, text/plain',
           'Cache-Control': 'no-cache',
         },

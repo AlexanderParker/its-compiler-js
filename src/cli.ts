@@ -224,7 +224,7 @@ async function watchMode(templatePath: string, options: CliOptions): Promise<voi
 
 // CLI setup
 program
-  .name('its-compile')
+  .name('its-compile-js')
   .description('ITS Compiler - Convert ITS templates to AI prompts')
   .version('1.0.0')
   .argument('<template-file>', 'Path to the ITS template JSON file')
