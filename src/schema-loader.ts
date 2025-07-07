@@ -181,12 +181,12 @@ export class SchemaLoader {
       throw new Error(`Instruction type '${typeName}' template must be a string`);
     }
 
-    // Check template for potentially dangerous patterns (but don't fail, just warn if needed)
+    // Check template for dangerous patterns
     const dangerousPatterns = [/<script/i, /javascript:/i, /data:text\/html/i, /eval\(/i];
 
     for (const pattern of dangerousPatterns) {
       if (pattern.test(typeDef.template)) {
-        console.warn(`Warning: Potentially dangerous pattern in template for type '${typeName}': ${pattern}`);
+        console.warn(`Warning: Potentially dangerous pattern in template: ${pattern}`);
       }
     }
   }
