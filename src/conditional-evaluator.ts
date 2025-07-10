@@ -115,7 +115,7 @@ export class ConditionalEvaluator {
         }
         return variables[node.name];
 
-      case 'MemberExpression':
+      case 'MemberExpression': {
         const object = this.evaluateASTNode(node.object, variables);
 
         if (object === null || object === undefined) {
@@ -140,8 +140,9 @@ export class ConditionalEvaluator {
         this.validatePropertyAccess(object, property);
 
         return object[property];
+      }
 
-      case 'BinaryExpression':
+      case 'BinaryExpression': {
         const left = this.evaluateASTNode(node.left, variables);
         const right = this.evaluateASTNode(node.right, variables);
 
@@ -170,8 +171,9 @@ export class ConditionalEvaluator {
           default:
             throw new Error(`Unsupported binary operator: ${node.operator}`);
         }
+      }
 
-      case 'LogicalExpression':
+      case 'LogicalExpression': {
         const leftVal = this.evaluateASTNode(node.left, variables);
 
         switch (node.operator) {
@@ -190,8 +192,9 @@ export class ConditionalEvaluator {
           default:
             throw new Error(`Unsupported logical operator: ${node.operator}`);
         }
+      }
 
-      case 'UnaryExpression':
+      case 'UnaryExpression': {
         switch (node.operator) {
           case '!':
             return !this.evaluateASTNode(node.argument, variables);
@@ -202,6 +205,7 @@ export class ConditionalEvaluator {
           default:
             throw new Error(`Unsupported unary operator: ${node.operator}`);
         }
+      }
 
       case 'ArrayExpression':
         // Allow simple array literals like [1, 2, 3]
