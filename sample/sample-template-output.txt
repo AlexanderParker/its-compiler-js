@@ -1,0 +1,38 @@
+✓ Template compiled successfully (93ms)
+
+================================================================================
+INTRODUCTION
+
+You are a professional product marketing copywriter. Create compelling, accurate product descriptions that highlight benefits and appeal to the target audience.
+
+INSTRUCTIONS
+
+1. Replace each placeholder marked with << >> with engaging marketing copy
+2. Match the specified tone and length requirements
+3. Focus on benefits rather than just features
+4. Ensure consistency with the overall product positioning
+5. Use persuasive but accurate language
+6. Maintain the existing structure and formatting
+
+TEMPLATE
+
+# SmartWatch Pro - Product Description
+
+<<Replace this placeholder with text using this user prompt: ([{<Write an engaging introduction for SmartWatch Pro, a wearable technology device designed for fitness enthusiasts>}]). Format requirements: Use professional tone and medium length (short=1-2 sentences, medium=2-4 sentences, long=4+ sentences).>>
+
+## Key Features
+
+<<Replace this placeholder with a list using this user prompt: ([{<Create a compelling feature list highlighting these capabilities: heart rate monitoring, GPS tracking, waterproof design, 7-day battery life, sleep tracking>}]). Format requirements: Use bullet_points formatting with each item on a new line.>>
+
+## Technical Specifications
+
+<<Replace this placeholder with a table using this user prompt: ([{<Generate technical specifications table for SmartWatch Pro including dimensions, battery, connectivity, and compatibility>}]). Format requirements: Use markdown_table format.>>
+
+## Perfect for Your Fitness Journey
+
+<<Replace this placeholder with text using this user prompt: ([{<Explain how SmartWatch Pro enhances fitness routines and helps achieve health goals>}]). Format requirements: Use motivational tone and short length (short=1-2 sentences, medium=2-4 sentences, long=4+ sentences).>>
+
+---
+
+*Transform your wearable technology experience with SmartWatch Pro.*
+================================================================================

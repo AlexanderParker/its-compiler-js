@@ -116,8 +116,10 @@ async function compileTemplate(templatePath: string, options: CliOptions): Promi
       const result = await compiler.compileFile(templatePath, variables);
 
       const compilationTime = Date.now() - startTime;
-      console.log(chalk.green(`✓ Template compiled successfully (${compilationTime}ms)`));
-
+      if (process.stdout.isTTY) {
+        console.log(chalk.green(`✓ Template compiled successfully (${compilationTime}ms)`));
+      }
+      
       // Show warnings and overrides if verbose
       if (options.verbose) {
         if (result.overrides.length > 0) {
@@ -145,9 +147,16 @@ async function compileTemplate(templatePath: string, options: CliOptions): Promi
           return false;
         }
       } else {
-        console.log('\n' + '='.repeat(80));
-        console.log(result.prompt);
-        console.log('='.repeat(80));
+        // Only show delimiters when outputting to a terminal (TTY)
+        // When redirected or piped, process.stdout.isTTY will be false
+        if (process.stdout.isTTY) {
+          console.log('\n' + '='.repeat(80));
+          console.log(result.prompt);
+          console.log('='.repeat(80));
+        } else {
+          // Direct output without delimiters for redirection/piping
+          console.log(result.prompt);
+        }
       }
 
       return true;
