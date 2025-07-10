@@ -9,7 +9,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import chokidar from 'chokidar';
 import { ITSCompiler } from './compiler.js';
-import { DEFAULT_SECURITY_CONFIG, DEVELOPMENT_SECURITY_CONFIG } from './security.js';
+import { DEFAULT_SECURITY_CONFIG } from './security.js';
 import { ITSError, ITSValidationError, ITSCompilationError, ITSSecurityError, SecurityConfig } from './types.js';
 
 const program = new Command();
@@ -23,7 +23,8 @@ interface CliOptions {
   strict?: boolean;
   allowHttp?: boolean;
   timeout?: string;
-  development?: boolean;
+  maxTemplateSize?: string;
+  maxContentElements?: string;
 }
 
 async function loadVariables(variablesPath: string): Promise<Record<string, any>> {
@@ -45,16 +46,36 @@ async function loadVariables(variablesPath: string): Promise<Record<string, any>
 }
 
 function createSecurityConfig(options: CliOptions): SecurityConfig {
-  const baseConfig = options.development ? DEVELOPMENT_SECURITY_CONFIG : DEFAULT_SECURITY_CONFIG;
-
-  return {
-    ...baseConfig,
-    allowHttp: options.allowHttp || baseConfig.allowHttp,
-    requestTimeout: options.timeout ? parseInt(options.timeout, 10) * 1000 : baseConfig.requestTimeout,
-    maxTemplateSize: options.strict ? 512 * 1024 : baseConfig.maxTemplateSize, // 512KB in strict mode
-    maxContentElements: options.strict ? 500 : baseConfig.maxContentElements,
-    maxNestingDepth: options.strict ? 8 : baseConfig.maxNestingDepth,
+  const config: SecurityConfig = {
+    ...DEFAULT_SECURITY_CONFIG,
   };
+
+  // Override specific settings based on CLI options
+  if (options.allowHttp) {
+    config.allowHttp = true;
+  }
+
+  if (options.timeout) {
+    config.requestTimeout = parseInt(options.timeout, 10) * 1000;
+  }
+
+  if (options.strict) {
+    // Stricter limits in strict mode
+    config.maxTemplateSize = 512 * 1024; // 512KB
+    config.maxContentElements = 500;
+    config.maxNestingDepth = 8;
+  }
+
+  if (options.maxTemplateSize) {
+    const sizeInKB = parseInt(options.maxTemplateSize, 10);
+    config.maxTemplateSize = sizeInKB * 1024;
+  }
+
+  if (options.maxContentElements) {
+    config.maxContentElements = parseInt(options.maxContentElements, 10);
+  }
+
+  return config;
 }
 
 async function compileTemplate(templatePath: string, options: CliOptions): Promise<boolean> {
@@ -84,6 +105,8 @@ async function compileTemplate(templatePath: string, options: CliOptions): Promi
       console.log(`  HTTP allowed: ${securityConfig.allowHttp}`);
       console.log(`  Block localhost: ${securityConfig.blockLocalhost}`);
       console.log(`  Max template size: ${Math.round(securityConfig.maxTemplateSize / 1024)}KB`);
+      console.log(`  Max content elements: ${securityConfig.maxContentElements}`);
+      console.log(`  Request timeout: ${securityConfig.requestTimeout}ms`);
     }
 
     const startTime = Date.now();
@@ -119,7 +142,7 @@ async function compileTemplate(templatePath: string, options: CliOptions): Promi
       if (process.stdout.isTTY) {
         console.log(chalk.green(`✓ Template compiled successfully (${compilationTime}ms)`));
       }
-      
+
       // Show warnings and overrides if verbose
       if (options.verbose) {
         if (result.overrides.length > 0) {
@@ -225,7 +248,7 @@ async function watchMode(templatePath: string, options: CliOptions): Promise<voi
 
   // Keep the process running
   process.on('SIGINT', () => {
-    console.log(chalk.yellow('\n⏹ Stopping watch mode...'));
+    console.log(chalk.yellow('\n🛑 Stopping watch mode...'));
     watcher.close();
     process.exit(0);
   });
@@ -242,10 +265,11 @@ program
   .option('-w, --watch', 'Watch template file for changes')
   .option('--validate-only', 'Validate template without compiling')
   .option('--verbose', 'Show detailed output')
-  .option('--strict', 'Enable strict validation mode')
+  .option('--strict', 'Enable strict validation mode (smaller limits)')
   .option('--allow-http', 'Allow HTTP URLs (not recommended for production)')
   .option('--timeout <seconds>', 'Network timeout in seconds', '10')
-  .option('--development', 'Use development security settings')
+  .option('--max-template-size <kb>', 'Maximum template size in KB')
+  .option('--max-content-elements <number>', 'Maximum number of content elements')
   .action(async (templateFile: string, options: CliOptions) => {
     try {
       // Check if template file exists
@@ -257,6 +281,28 @@ program
 
     if (options.watch && options.validateOnly) {
       console.error(chalk.red('Cannot use --watch with --validate-only'));
+      process.exit(1);
+    }
+
+    // Validate numeric options
+    if (options.timeout && (isNaN(parseInt(options.timeout)) || parseInt(options.timeout) <= 0)) {
+      console.error(chalk.red('Timeout must be a positive number'));
+      process.exit(1);
+    }
+
+    if (
+      options.maxTemplateSize &&
+      (isNaN(parseInt(options.maxTemplateSize)) || parseInt(options.maxTemplateSize) <= 0)
+    ) {
+      console.error(chalk.red('Max template size must be a positive number'));
+      process.exit(1);
+    }
+
+    if (
+      options.maxContentElements &&
+      (isNaN(parseInt(options.maxContentElements)) || parseInt(options.maxContentElements) <= 0)
+    ) {
+      console.error(chalk.red('Max content elements must be a positive number'));
       process.exit(1);
     }
 

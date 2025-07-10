@@ -3,7 +3,7 @@
  */
 
 import { ITSCompiler } from '../src/compiler';
-import { DEFAULT_SECURITY_CONFIG, DEVELOPMENT_SECURITY_CONFIG } from '../src/security';
+import { DEFAULT_SECURITY_CONFIG } from '../src/security';
 import { ITSValidationError, ITSTemplate, TextElement, ConditionalElement } from '../src/types';
 
 // Define helper function locally
@@ -23,7 +23,7 @@ describe('ITSCompiler', () => {
   let compiler: ITSCompiler;
 
   beforeEach(() => {
-    compiler = new ITSCompiler(DEVELOPMENT_SECURITY_CONFIG);
+    compiler = new ITSCompiler();
   });
 
   describe('compile', () => {

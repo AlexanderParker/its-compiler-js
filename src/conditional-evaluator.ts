@@ -1,5 +1,5 @@
 /**
- * Conditional expression evaluation using jsep
+ * Conditional expression evaluation for ITS Compiler using jsep for safety
  */
 
 import jsep from 'jsep';
@@ -162,6 +162,11 @@ export class ConditionalEvaluator {
             return left > right;
           case '>=':
             return left >= right;
+          // Handle logical operators in case jsep treats them as binary
+          case '&&':
+            return left && right;
+          case '||':
+            return left || right;
           default:
             throw new Error(`Unsupported binary operator: ${node.operator}`);
         }
@@ -171,8 +176,16 @@ export class ConditionalEvaluator {
 
         switch (node.operator) {
           case '&&':
+            // Short-circuit evaluation
             return leftVal && this.evaluateASTNode(node.right, variables);
           case '||':
+            // Short-circuit evaluation
+            return leftVal || this.evaluateASTNode(node.right, variables);
+          case 'and':
+            // Support 'and' keyword as well
+            return leftVal && this.evaluateASTNode(node.right, variables);
+          case 'or':
+            // Support 'or' keyword as well
             return leftVal || this.evaluateASTNode(node.right, variables);
           default:
             throw new Error(`Unsupported logical operator: ${node.operator}`);

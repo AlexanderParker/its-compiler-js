@@ -43,13 +43,17 @@ npx its-compile template.json --validate-only
 
 ```
 Options:
-  -o, --output <file>         Output file (default: stdout)
-  -v, --variables <file>      JSON file with variable values
-  -w, --watch                 Watch template file for changes
-  --validate-only             Validate template without compiling
-  --verbose                   Show detailed output
-  --development               Use development security settings
-  --help                      Show help
+  -o, --output <file>              Output file (default: stdout)
+  -v, --variables <file>           JSON file with variable values
+  -w, --watch                      Watch template file for changes
+  --validate-only                  Validate template without compiling
+  --verbose                        Show detailed output
+  --strict                         Enable strict validation mode (smaller limits)
+  --allow-http                     Allow HTTP URLs (not recommended for production)
+  --timeout <seconds>              Network timeout in seconds (default: 10)
+  --max-template-size <kb>         Maximum template size in KB
+  --max-content-elements <number>  Maximum number of content elements
+  --help
 ```
 
 ### Examples
@@ -67,10 +71,22 @@ npx its-compile blog-template.json --output blog-prompt.txt
 npx its-compile product-template.json --variables vars.json
 ```
 
-**Development mode:**
+**Strict mode with custom limits:**
 
 ```bash
-npx its-compile template.json --development --watch --verbose
+npx its-compile template.json --strict --max-template-size 256 --verbose
+```
+
+**Allow HTTP schemas (development only):**
+
+```bash
+npx its-compile template.json --allow-http --timeout 30
+```
+
+**Watch mode:**
+
+```bash
+npx its-compile template.json --watch --verbose
 ```
 
 ## API Usage
@@ -217,7 +233,7 @@ try {
 
 The compiler includes some built-in security protections - note that this is a best-effort, please thoroughly implement and test your own security safeguards when using this software:
 
-- **Expression Safety**: Safe evaluation of conditional expressions with no code execution
+- **Expression Safety**: Safe evaluation of conditional expressions with jsep AST parsing
 - **SSRF Protection**: Blocks private networks and validates URLs
 - **Input Validation**: Scans for malicious patterns
 - **Prototype Pollution Protection**: Prevents `__proto__` manipulation
