@@ -241,6 +241,31 @@ const compiler = new ITSCompiler(securityConfig);
 - **[ITS Specification](https://github.com/alexanderparker/instruction-template-specification)** - Official specification and documentation
 - **[ITS Python Compiler](https://github.com/alexanderparker/its-compiler-python)** - Reference Python implementation
 
+## For Maintainers
+
+### Publishing to NPM
+
+The project includes automated publishing via GitHub Actions. To publish a new version:
+
+```bash
+# For patch releases (bug fixes)
+npm run release:patch
+
+# For minor releases (new features)
+npm run release:minor
+
+# For major releases (breaking changes)
+npm run release:major
+```
+
+These commands will:
+1. Run tests and linting
+2. Bump the version number
+3. Create a git tag
+4. Push the tag to trigger GitHub Actions publishing
+
+Make sure you have the `NPM_TOKEN` secret configured in your GitHub repository settings for automated publishing to work.
+
 ## License
 
 MIT - see [LICENSE](LICENSE) file for details.
