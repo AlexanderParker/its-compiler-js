@@ -1,7 +1,8 @@
 /**
- * Conditional expression evaluation for ITS Compiler
+ * Conditional expression evaluation using jsep
  */
 
+import jsep from 'jsep';
 import { ITSSecurityError, ContentElement } from './types.js';
 
 export class ConditionalEvaluator {
@@ -41,15 +42,18 @@ export class ConditionalEvaluator {
   }
 
   /**
-   * Evaluate a conditional expression
+   * Evaluate a conditional expression using jsep for safety
    */
   evaluateCondition(condition: string, variables: Record<string, any>): boolean {
     // Basic security validation
     this.validateConditionSecurity(condition);
 
     try {
-      // Parse and evaluate the condition
-      const result = this.evaluateExpression(condition, variables);
+      // Parse the expression into AST
+      const ast = jsep(condition);
+
+      // Evaluate the AST safely
+      const result = this.evaluateASTNode(ast, variables);
       return Boolean(result);
     } catch (error) {
       throw new ITSSecurityError(
@@ -72,7 +76,7 @@ export class ConditionalEvaluator {
       );
     }
 
-    // Check for dangerous patterns
+    // Check for dangerous patterns that might bypass jsep
     const dangerousPatterns = [
       /\b(eval|exec|function|Function|setTimeout|setInterval)\s*\(/i,
       /\b(import|require|global|window|document|process)\b/i,
@@ -94,200 +98,167 @@ export class ConditionalEvaluator {
   }
 
   /**
-   * Simple expression evaluator with support for boolean operators
+   * Safely evaluate an AST node
    */
-  private evaluateExpression(expression: string, variables: Record<string, any>): any {
-    // Normalize the expression by replacing logical operators
-    let processedExpression = expression.trim();
-
-    // Replace boolean operators with JavaScript equivalents
-    processedExpression = processedExpression.replace(/\band\b/g, '&&');
-    processedExpression = processedExpression.replace(/\bor\b/g, '||');
-    processedExpression = processedExpression.replace(/\bnot\b/g, '!');
-
-    // Replace variable references
-    processedExpression = this.replaceVariableReferences(processedExpression, variables);
-
-    try {
-      // Use Function constructor for safe evaluation
-      const func = new Function('return ' + processedExpression);
-      return func();
-    } catch {
-      throw new Error(`Invalid expression: ${expression}`);
-    }
-  }
-
-  /**
-   * Replace variable references in expression with actual values
-   */
-  private replaceVariableReferences(expression: string, variables: Record<string, any>): string {
-    let processed = expression;
-
-    // Handle property access and array indexing first
-    processed = this.handlePropertyAccess(processed, variables);
-
-    // Handle simple variable references
-    for (const [key, value] of Object.entries(variables)) {
-      // Use word boundaries to avoid partial replacements
-      const regex = new RegExp(`\\b${this.escapeRegExp(key)}\\b`, 'g');
-      processed = processed.replace(regex, JSON.stringify(value));
+  private evaluateASTNode(node: any, variables: Record<string, any>): any {
+    if (!node || typeof node !== 'object') {
+      throw new Error('Invalid AST node');
     }
 
-    // Handle boolean literals
-    processed = processed.replace(/\btrue\b/g, 'true');
-    processed = processed.replace(/\bfalse\b/g, 'false');
+    switch (node.type) {
+      case 'Literal':
+        return node.value;
 
-    return processed;
-  }
+      case 'Identifier':
+        if (!(node.name in variables)) {
+          throw new Error(`Variable '${node.name}' is not defined`);
+        }
+        return variables[node.name];
 
-  /**
-   * Escape special regex characters
-   */
-  private escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
+      case 'MemberExpression':
+        const object = this.evaluateASTNode(node.object, variables);
 
-  /**
-   * Handle property access in expressions
-   */
-  private handlePropertyAccess(expression: string, variables: Record<string, any>): string {
-    let processed = expression;
-
-    // Handle complex property paths like object.property and array[index]
-    const propertyPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*|\[[0-9-]+\])*)\b/g;
-
-    processed = processed.replace(propertyPattern, match => {
-      try {
-        // Skip if it's already a literal value or operator
-        if (/^(true|false|null|undefined|\d+|&&|\|\||==|!=|<=|>=|<|>)$/.test(match)) {
-          return match;
+        if (object === null || object === undefined) {
+          throw new Error('Cannot access property of null or undefined');
         }
 
-        const value = this.resolveVariablePath(match, variables);
-        return JSON.stringify(value);
-      } catch {
-        // If we can't resolve it, leave it as-is for now
-        return match;
-      }
-    });
+        let property: string | number;
+        if (node.computed) {
+          // For array access like obj[0] or obj[key]
+          property = this.evaluateASTNode(node.property, variables);
+        } else {
+          // For property access like obj.prop
+          property = node.property.name;
+        }
 
-    return processed;
-  }
-
-  /**
-   * Resolve a variable path like "object.property" or "array[0]"
-   */
-  private resolveVariablePath(path: string, variables: Record<string, any>): any {
-    const parts = this.parseVariablePath(path);
-    let current: any = variables;
-
-    for (const part of parts) {
-      if (part.type === 'property') {
         // Handle special properties
-        if (part.name === 'length' && (Array.isArray(current) || typeof current === 'string')) {
-          return current.length;
+        if (property === 'length' && (Array.isArray(object) || typeof object === 'string')) {
+          return object.length;
         }
 
-        if (typeof current !== 'object' || current === null) {
-          throw new Error(`Cannot access property '${part.name}' on non-object value`);
+        // Validate property access for security
+        this.validatePropertyAccess(object, property);
+
+        return object[property];
+
+      case 'BinaryExpression':
+        const left = this.evaluateASTNode(node.left, variables);
+        const right = this.evaluateASTNode(node.right, variables);
+
+        switch (node.operator) {
+          case '==':
+            return left == right;
+          case '===':
+            return left === right;
+          case '!=':
+            return left != right;
+          case '!==':
+            return left !== right;
+          case '<':
+            return left < right;
+          case '<=':
+            return left <= right;
+          case '>':
+            return left > right;
+          case '>=':
+            return left >= right;
+          default:
+            throw new Error(`Unsupported binary operator: ${node.operator}`);
         }
 
-        if (part.name && !(part.name in current)) {
-          throw new Error(`Property '${part.name}' not found`);
+      case 'LogicalExpression':
+        const leftVal = this.evaluateASTNode(node.left, variables);
+
+        switch (node.operator) {
+          case '&&':
+            return leftVal && this.evaluateASTNode(node.right, variables);
+          case '||':
+            return leftVal || this.evaluateASTNode(node.right, variables);
+          default:
+            throw new Error(`Unsupported logical operator: ${node.operator}`);
         }
 
-        if (part.name) {
-          current = current[part.name];
-        }
-      } else if (part.type === 'index') {
-        if (!Array.isArray(current)) {
-          throw new Error(`Cannot access array index on non-array value`);
+      case 'UnaryExpression':
+        switch (node.operator) {
+          case '!':
+            return !this.evaluateASTNode(node.argument, variables);
+          case '-':
+            return -this.evaluateASTNode(node.argument, variables);
+          case '+':
+            return +this.evaluateASTNode(node.argument, variables);
+          default:
+            throw new Error(`Unsupported unary operator: ${node.operator}`);
         }
 
-        if (part.index !== undefined) {
-          if (part.index < 0) {
-            // Support negative indexing
-            const actualIndex = current.length + part.index;
-            if (actualIndex < 0 || actualIndex >= current.length) {
-              throw new Error(`Array index ${part.index} out of bounds`);
-            }
-            current = current[actualIndex];
-          } else {
-            if (part.index >= current.length) {
-              throw new Error(`Array index ${part.index} out of bounds`);
-            }
-            current = current[part.index];
-          }
-        }
-      }
+      case 'ArrayExpression':
+        // Allow simple array literals like [1, 2, 3]
+        return node.elements.map((element: any) => this.evaluateASTNode(element, variables));
+
+      default:
+        throw new Error(`Unsupported expression type: ${node.type}`);
     }
-
-    return current;
   }
 
   /**
-   * Parse variable path into components
+   * Validate property access for security
    */
-  private parseVariablePath(path: string): Array<{ type: 'property' | 'index'; name?: string; index?: number }> {
-    const parts: Array<{ type: 'property' | 'index'; name?: string; index?: number }> = [];
-    let current = '';
-    let i = 0;
+  private validatePropertyAccess(object: any, property: string | number): void {
+    // Block access to dangerous properties
+    const dangerousProperties = new Set([
+      'constructor',
+      'prototype',
+      '__proto__',
+      '__defineGetter__',
+      '__defineSetter__',
+      '__lookupGetter__',
+      '__lookupSetter__',
+    ]);
 
-    while (i < path.length) {
-      const char = path[i];
+    if (typeof property === 'string' && dangerousProperties.has(property)) {
+      throw new ITSSecurityError(
+        `Access to dangerous property '${property}' is blocked`,
+        'property_access',
+        'MALICIOUS_CONTENT'
+      );
+    }
 
-      if (char === '.') {
-        if (current) {
-          parts.push({ type: 'property', name: current });
-          current = '';
+    // Additional validation for function objects
+    if (typeof object === 'function') {
+      throw new ITSSecurityError(
+        'Property access on function objects is not allowed',
+        'function_property_access',
+        'MALICIOUS_CONTENT'
+      );
+    }
+
+    // Validate array bounds
+    if (Array.isArray(object) && typeof property === 'number') {
+      if (property < 0) {
+        // Support negative indexing
+        const actualIndex = object.length + property;
+        if (actualIndex < 0 || actualIndex >= object.length) {
+          throw new Error(`Array index ${property} out of bounds`);
         }
-      } else if (char === '[') {
-        if (current) {
-          parts.push({ type: 'property', name: current });
-          current = '';
-        }
-
-        // Parse array index
-        i++; // Skip '['
-        let indexStr = '';
-        while (i < path.length && path[i] !== ']') {
-          indexStr += path[i];
-          i++;
-        }
-
-        if (i >= path.length || path[i] !== ']') {
-          throw new Error(`Malformed array index in path: ${path}`);
-        }
-
-        const index = parseInt(indexStr, 10);
-        if (isNaN(index)) {
-          throw new Error(`Invalid array index: ${indexStr}`);
-        }
-
-        parts.push({ type: 'index', index });
-      } else {
-        current += char;
+      } else if (property >= object.length) {
+        throw new Error(`Array index ${property} out of bounds`);
       }
-
-      i++;
     }
-
-    if (current) {
-      parts.push({ type: 'property', name: current });
-    }
-
-    return parts;
   }
 
   /**
-   * Validate condition syntax
+   * Validate condition syntax using jsep
    */
   validateCondition(condition: string, variables: Record<string, any>): string[] {
     const errors: string[] = [];
 
     try {
       this.validateConditionSecurity(condition);
-      this.evaluateCondition(condition, variables);
+
+      // Try to parse with jsep
+      const ast = jsep(condition);
+
+      // Try to evaluate
+      this.evaluateASTNode(ast, variables);
     } catch (error) {
       if (error instanceof ITSSecurityError) {
         errors.push(error.message);
