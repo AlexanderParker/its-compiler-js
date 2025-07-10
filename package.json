@@ -26,7 +26,13 @@
         "ai",
         "prompt",
         "its",
-        "instruction-template-specification"
+        "instruction-template-specification",
+        "typescript",
+        "javascript",
+        "prompt-engineering",
+        "ai-templates",
+        "template-engine",
+        "prompt-templates"
     ],
     "author": "Your Name",
     "license": "MIT",
