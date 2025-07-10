@@ -6,28 +6,6 @@
 
 A JavaScript/TypeScript compiler for the [Instruction Template Specification (ITS)](https://github.com/alexanderparker/instruction-template-specification) that converts templates with placeholders into structured AI prompts.
 
-## What is ITS?
-
-ITS (Instruction Template Specification) is a standard format for creating reusable AI prompt templates. It allows you to:
-
-- **Define templates** with placeholders for dynamic content
-- **Use variables** to customise prompts for different scenarios
-- **Add conditional logic** to include/exclude content based on variables
-- **Extend schemas** to define custom instruction types
-- **Ensure consistency** across AI interactions
-
-**Simple Example:**
-
-```json
-{
-  "version": "1.0.0",
-  "variables": { "topic": "climate change" },
-  "content": [{ "type": "text", "text": "Write about ${topic}" }]
-}
-```
-
-Compiles to a structured AI prompt that replaces `${topic}` with "climate change".
-
 ## Installation
 
 ```bash
