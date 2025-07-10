@@ -64,7 +64,7 @@ export class SchemaLoader {
     try {
       const base = new URL(baseUrl);
       return new URL(url, base).toString();
-    } catch (error) {
+    } catch {
       // If URL resolution fails, return original URL
       return url;
     }

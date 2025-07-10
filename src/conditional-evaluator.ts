@@ -112,7 +112,7 @@ export class ConditionalEvaluator {
       // Use Function constructor for safe evaluation
       const func = new Function('return ' + processedExpression);
       return func();
-    } catch (error) {
+    } catch {
       throw new Error(`Invalid expression: ${expression}`);
     }
   }
@@ -165,7 +165,7 @@ export class ConditionalEvaluator {
 
         const value = this.resolveVariablePath(match, variables);
         return JSON.stringify(value);
-      } catch (error) {
+      } catch {
         // If we can't resolve it, leave it as-is for now
         return match;
       }
