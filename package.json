@@ -5,6 +5,12 @@
     "description": "JavaScript/TypeScript implementation of the Instruction Template Specification (ITS) compiler",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
     "bin": {
         "its-compile": "dist/cli.js"
     },
@@ -32,7 +38,8 @@
         "prompt-engineering",
         "ai-templates",
         "template-engine",
-        "prompt-templates"
+        "prompt-templates",
+        "npm-package"
     ],
     "author": "Your Name",
     "license": "MIT",
