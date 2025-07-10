@@ -9,13 +9,13 @@ A JavaScript/TypeScript compiler for the [Instruction Template Specification (IT
 ## Installation
 
 ```bash
-npm install its-compiler-js
+npm i its-compiler-js
 ```
 
 Or globally
 
 ```bash
-npm install -g its-compiler-js
+npm i -g its-compiler-js
 ```
 
 ## Command Line Usage
@@ -215,11 +215,11 @@ try {
 
 ## Security
 
-The compiler includes built-in security protections:
+The compiler includes some built-in security protections - note that this is a best-effort, please thoroughly implement and test your own security safeguards when using this software:
 
+- **Expression Safety**: Safe evaluation of conditional expressions with no code execution
 - **SSRF Protection**: Blocks private networks and validates URLs
 - **Input Validation**: Scans for malicious patterns
-- **Expression Sanitisation**: Validates conditional expressions
 - **Prototype Pollution Protection**: Prevents `__proto__` manipulation
 - **Size Limits**: Prevents oversized templates and expressions
 
@@ -259,6 +259,7 @@ npm run release:major
 ```
 
 These commands will:
+
 1. Run tests and linting
 2. Bump the version number
 3. Create a git tag
