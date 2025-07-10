@@ -34,6 +34,12 @@ Compiles to a structured AI prompt that replaces `${topic}` with "climate change
 npm install its-compiler-js
 ```
 
+Or globally
+
+```bash
+npm install -g its-compiler-js
+```
+
 ## Command Line Usage
 
 ### Basic Commands
