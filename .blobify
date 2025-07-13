@@ -1,5 +1,7 @@
 # .blobify configuration (https://github.com/AlexanderParker/blobify) to include some files it usually excludes by default 
 
-# include specific configuration files
+# include pre-commit files
 +.pre-commit-config.yaml
-+.github/**
+
+# include github workfows
++.github/workflows
