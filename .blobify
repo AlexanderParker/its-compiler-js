@@ -1,7 +1,66 @@
-# .blobify configuration (https://github.com/AlexanderParker/blobify) to include some files it usually excludes by default 
+# .blobify configuration for ITS Compiler JavaScript/TypeScript project
+# This configuration provides different contexts for packaging and analysing the codebase
 
-# include pre-commit files
-+.pre-commit-config.yaml
+# Default context - include everything except gitignored files
+@copy-to-clipboard=true
+@show-excluded=false
+@output-line-numbers=false
+@output-index=false
+@output-metadata=false
+## Complete codebase including source code, tests, configuration, documentation, and CI/CD files
 
-# include github workfows
-+.github/workflows
+# Base context that excludes everything - used for inheritance
+[nothing:default]
+-**
+## Empty base context for selective inclusion via inheritance
+
+# Source code and core configuration only
+[code:nothing]
++src/**
++package.json
++tsconfig.json
++eslint.config.js
+## Core source code, TypeScript configuration, package definition, and linting setup
+
+# Test files and test configuration
+[tests:nothing]
++tests/**
++jest.config.*
+## Test files, test setup, mocks, and Jest configuration
+
+# CI/CD and automation files
+[cicd:nothing]
++.github/**
++.gitignore
++.gitattributes
+## GitHub workflows, automation scripts, and repository configuration
+
+# Documentation files
+[docs:nothing]
++README.md
++*.md
++sample/**
+## Documentation, README files, examples, and sample templates
+
+# Build and distribution files
+[build:nothing]
++package.json
++tsconfig.json
++eslint.config.js
++.github/workflows/**
+## Build configuration, package definition, and deployment workflows
+
+# Development setup files
+[dev:nothing]
++package.json
++tsconfig.json
++eslint.config.js
++tests/setup.ts
++.github/workflows/test.yml
+## Development environment configuration and testing setup
+
+# Sample and example files
+[examples:nothing]
++sample/**
++README.md
+## Sample templates, example outputs, and usage documentation
