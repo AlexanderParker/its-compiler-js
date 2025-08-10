@@ -7,6 +7,7 @@
 @output-line-numbers=false
 @output-index=false
 @output-metadata=false
+@enable-scrubbing=false
 ## Complete codebase including source code, tests, configuration, documentation, and CI/CD files
 
 # Base context that excludes everything - used for inheritance

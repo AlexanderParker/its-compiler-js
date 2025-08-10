@@ -1,4 +1,4 @@
-// eslint.config.js - Updated with proper rules for CLI tool
+// eslint.config.js - Updated with proper rules for CLI tool and MCP server
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
@@ -59,6 +59,13 @@ export default [
     files: ['src/cli.ts'],
     rules: {
       'no-console': 'off', // CLI needs console output
+    },
+  },
+  {
+    // More permissive rules for MCP server (needs console.error for logging)
+    files: ['src/mcp-server.ts'],
+    rules: {
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
   {
