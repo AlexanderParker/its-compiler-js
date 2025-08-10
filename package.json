@@ -16,7 +16,7 @@
         "its-mcp-server": "dist/mcp-server.js"
     },
     "scripts": {
-        "build": "tsc && node -e \"const fs=require('fs'); fs.cpSync('schemas', 'dist/schemas', {recursive: true})\"",
+        "build": "tsc && node -e \"const fs=require('fs'); fs.cpSync('schemas', 'dist/schemas', {recursive: true}); fs.cpSync('sample', 'dist/sample', {recursive: true})\"",
         "dev": "tsc --watch",
         "test": "jest",
         "test:watch": "jest --watch",

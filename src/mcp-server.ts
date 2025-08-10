@@ -211,6 +211,36 @@ class ITSMCPServer {
     }
   }
 
+  private async handleGetExample(): Promise<any> {
+    try {
+      // Read the sample template from dist directory
+      const templatePath = './sample/sample-template.json';
+      const outputPath = './sample/sample-template-output.txt';
+
+      const templateContent = await fs.readFile(templatePath, 'utf-8');
+      const outputContent = await fs.readFile(outputPath, 'utf-8');
+
+      const template = JSON.parse(templateContent);
+
+      return {
+        success: true,
+        description: 'Example ITS template showing standard instruction types for product marketing copy',
+        template,
+        compiledOutput: outputContent,
+        instructionTypesUsed: ['paragraph', 'list', 'table'],
+        features: [
+          'Variable substitution with ${variable} syntax',
+          'Conditional content based on variables',
+          'Standard instruction types (paragraph, list, table)',
+          'Custom compiler configuration',
+          'Nested object and array variable access',
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to load example template: ${error}`);
+    }
+  }
+
   private async handleToolCall(name: string, args: any): Promise<any> {
     try {
       switch (name) {
@@ -222,6 +252,8 @@ class ITSMCPServer {
           return await this.handleValidate(args as ValidateToolArgs);
         case 'its_get_schema':
           return await this.handleGetSchema(args as GetSchemaToolArgs);
+        case 'its_get_example':
+          return await this.handleGetExample();
         default:
           throw new Error(`Tool ${name} not found`);
       }
@@ -274,7 +306,8 @@ class ITSMCPServer {
             tools: [
               {
                 name: 'its_compile',
-                description: 'Compile an ITS template into an AI prompt',
+                description:
+                  'Compile ITS (Instruction Template Specification) templates - JSON files that define reusable content structures with placeholders, variables (${var}), and conditionals. When compiled, they become structured AI prompts that generate consistent content. Templates use instruction types like paragraph, list, table, code_block, dialogue, etc. **Use its_get_example for format and its_get_schema for all available instruction types.** Perfect for creating reusable content templates.',
                 inputSchema: {
                   type: 'object',
                   properties: {
@@ -287,7 +320,8 @@ class ITSMCPServer {
                     },
                     variables: {
                       type: 'object',
-                      description: 'Variables to substitute in the template',
+                      description:
+                        'Variables to substitute in the template. Note: if template is passed as an object, variables can be provided here OR in template.variables (this parameter takes precedence).',
                       additionalProperties: true,
                     },
                     options: {
@@ -322,7 +356,8 @@ class ITSMCPServer {
               },
               {
                 name: 'its_compile_file',
-                description: 'Compile an ITS template file into an AI prompt',
+                description:
+                  'Compile an ITS template file (.json) into a structured AI prompt. ITS templates are JSON structures that define reusable content formats - they compile into AI prompts that generate consistent content. Templates use instruction types like paragraph, list, table, etc. **Use its_get_example and its_get_schema first to understand format and available types.**',
                 inputSchema: {
                   type: 'object',
                   properties: {
@@ -363,7 +398,8 @@ class ITSMCPServer {
               },
               {
                 name: 'its_validate',
-                description: 'Validate an ITS template without compiling',
+                description:
+                  'Validate an ITS template structure without compiling. **Use its_get_example for format and its_get_schema for type definitions.** Checks syntax, required fields, variable references, security issues, and schema compliance.',
                 inputSchema: {
                   type: 'object',
                   properties: {
@@ -380,6 +416,33 @@ class ITSMCPServer {
                     },
                   },
                   required: ['template'],
+                  additionalProperties: false,
+                },
+              },
+              {
+                name: 'its_get_example',
+                description:
+                  'Get a complete example ITS template with compiled output. ITS templates are JSON structures that define reusable content formats - they compile into AI prompts that generate consistent content. Shows standard instruction types (paragraph, list, table), variables, conditionals, and proper template structure. **Start here to understand the format.**',
+                inputSchema: {
+                  type: 'object',
+                  properties: {},
+                  additionalProperties: false,
+                },
+              },
+              {
+                name: 'its_get_schema',
+                description:
+                  'Get ITS schema definitions. Use "base" for template structure or "standard-types" for instruction types: paragraph, list, table, title, code_block, image_description, dialogue, quote, summary. **Essential for understanding available placeholder types before creating templates.**',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    schemaType: {
+                      type: 'string',
+                      enum: ['base', 'standard-types'],
+                      description: 'Type of schema to retrieve',
+                    },
+                  },
+                  required: ['schemaType'],
                   additionalProperties: false,
                 },
               },
