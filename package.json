@@ -16,7 +16,7 @@
         "its-mcp-server": "dist/mcp-server.js"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && node -e \"const fs=require('fs'); fs.cpSync('schemas', 'dist/schemas', {recursive: true})\"",
         "dev": "tsc --watch",
         "test": "jest",
         "test:watch": "jest --watch",
@@ -29,7 +29,8 @@
         "release:patch": "npm test && npm run lint && npm version patch && git push --follow-tags",
         "release:minor": "npm test && npm run lint && npm version minor && git push --follow-tags",
         "release:major": "npm test && npm run lint && npm version major && git push --follow-tags",
-        "mcp-server": "node dist/mcp-server.js"
+        "mcp-server": "node dist/mcp-server.js",
+        "dev:mcp": "npm run build && npm run mcp-server"
     },
     "keywords": [
         "template",

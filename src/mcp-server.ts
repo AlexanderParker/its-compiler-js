@@ -54,6 +54,10 @@ interface CompileFileToolArgs {
   };
 }
 
+interface GetSchemaToolArgs {
+  schemaType: 'base' | 'standard-types';
+}
+
 class ITSMCPServer {
   private compiler: ITSCompiler;
 
@@ -175,6 +179,38 @@ class ITSMCPServer {
     };
   }
 
+  private async handleGetSchema(args: GetSchemaToolArgs): Promise<any> {
+    const { schemaType } = args;
+
+    try {
+      let schemaPath: string;
+      if (schemaType === 'base') {
+        schemaPath = './schemas/v1.0/its-base-schema-v1.json';
+      } else if (schemaType === 'standard-types') {
+        schemaPath = './schemas/v1.0/its-standard-types-v1.json';
+      } else {
+        throw new Error(`Unknown schema type: ${schemaType}`);
+      }
+
+      // Read schema file
+      const schemaContent = await fs.readFile(schemaPath, 'utf-8');
+      const schema = JSON.parse(schemaContent);
+
+      return {
+        success: true,
+        schemaType,
+        schema,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('ENOENT')) {
+        throw new Error(
+          `Schema file not found at: ${schemaType === 'base' ? './schemas/v1.0/its-base-schema-v1.json' : './schemas/v1.0/its-standard-types-v1.json'}`
+        );
+      }
+      throw new Error(`Failed to load schema: ${error}`);
+    }
+  }
+
   private async handleToolCall(name: string, args: any): Promise<any> {
     try {
       switch (name) {
@@ -184,6 +220,8 @@ class ITSMCPServer {
           return await this.handleCompileFile(args as CompileFileToolArgs);
         case 'its_validate':
           return await this.handleValidate(args as ValidateToolArgs);
+        case 'its_get_schema':
+          return await this.handleGetSchema(args as GetSchemaToolArgs);
         default:
           throw new Error(`Tool ${name} not found`);
       }
