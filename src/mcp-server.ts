@@ -421,7 +421,10 @@ class ITSMCPServer {
 }
 
 // Start the server if this file is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule =
+  process.argv[1] && (process.argv[1].endsWith('mcp-server.js') || process.argv[1].includes('mcp-server'));
+
+if (isMainModule) {
   const server = new ITSMCPServer();
   server.run().catch(error => {
     process.stderr.write(`Fatal error in MCP server: ${error}\n`);

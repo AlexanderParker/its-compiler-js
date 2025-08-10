@@ -2,9 +2,9 @@
 
 [![npm version](https://badge.fury.io/js/its-compiler-js.svg)](https://badge.fury.io/js/its-compiler-js)
 [![Node.js Version](https://img.shields.io/node/v/its-compiler-js.svg)](https://nodejs.org)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A JavaScript/TypeScript compiler for the [Instruction Template Specification (ITS)](https://github.com/instructiontemplatespec/specification) that converts templates with placeholders into structured AI prompts.
+A JavaScript/TypeScript compiler for the [Instruction Template Specification (ITS)](https://github.com/alexanderparker/instruction-template-specification) that converts templates with placeholders into structured AI prompts.
 
 ## Installation
 
@@ -305,7 +305,9 @@ try {
 
 ```json
 {
-  "extends": ["https://schemas.instructiontemplatespec.org/standard-v1.json"],
+  "extends": [
+    "https://alexanderparker.github.io/instruction-template-specification/schema/v1.0/its-standard-types-v1.json"
+  ],
   "content": [
     {
       "type": "placeholder",
@@ -345,8 +347,8 @@ const compiler = new ITSCompiler(securityConfig);
 
 ## Related Projects
 
-- **[ITS Specification](https://github.com/instructiontemplatespec/specification)** - Official specification and documentation
-- **[ITS Python Compiler](https://github.com/instructiontemplatespec/its-compiler-python)** - Reference Python implementation
+- **[ITS Specification](https://github.com/alexanderparker/instruction-template-specification)** - Official specification and documentation
+- **[ITS Python Compiler](https://github.com/alexanderparker/its-compiler-python)** - Reference Python implementation
 
 ## For Maintainers
 
