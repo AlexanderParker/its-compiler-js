@@ -3,7 +3,7 @@
  */
 
 import { promises as fs } from 'fs';
-import { URL } from 'url';
+import { URL, fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 import { ITSSecurityError, SchemaCache, SecurityConfig } from './types.js';
 import { SecurityValidator } from './security.js';
@@ -86,17 +86,17 @@ export class SchemaLoader {
    * Load schema from URL
    */
   private async loadFromUrl(url: string): Promise<any> {
+    if (url.startsWith('file:')) {
+      return this.loadFromFile(url);
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
       const response = await fetch(url, {
         signal: controller.signal,
-        headers: {
-          'User-Agent': 'its-compiler-js/1.0',
-          Accept: 'application/json, text/plain',
-          'Cache-Control': 'no-cache',
-        },
+        headers: this.buildRequestHeaders(),
       });
 
       clearTimeout(timeoutId);
@@ -143,6 +143,41 @@ export class SchemaLoader {
 
       throw error;
     }
+  }
+
+  /**
+   * Build request headers. Browsers reject or preflight non-safelisted headers
+   * (Cache-Control triggers a CORS preflight that static hosts refuse, and
+   * User-Agent is forbidden), so those are only sent from a Node runtime.
+   */
+  private buildRequestHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: 'application/json, text/plain',
+    };
+
+    const isNode = typeof process !== 'undefined' && process.versions?.node !== undefined;
+    if (isNode) {
+      headers['User-Agent'] = 'its-compiler-js/1.0';
+      headers['Cache-Control'] = 'no-cache';
+    }
+
+    return headers;
+  }
+
+  /**
+   * Load schema from a file:// URL (requires allowLocalFileSchemas)
+   */
+  private async loadFromFile(url: string): Promise<any> {
+    const filePath = fileURLToPath(url);
+    const text = await fs.readFile(filePath, 'utf-8');
+
+    if (text.length > 10 * 1024 * 1024) {
+      throw new Error(`Schema too large: ${text.length} bytes`);
+    }
+
+    const schema = JSON.parse(text);
+    this.validateSchemaStructure(schema);
+    return schema;
   }
 
   /**

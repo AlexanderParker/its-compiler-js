@@ -22,6 +22,7 @@ interface CliOptions {
   verbose?: boolean;
   strict?: boolean;
   allowHttp?: boolean;
+  allowLocalSchemas?: boolean;
   timeout?: string;
   maxTemplateSize?: string;
   maxContentElements?: string;
@@ -53,6 +54,10 @@ function createSecurityConfig(options: CliOptions): SecurityConfig {
   // Override specific settings based on CLI options
   if (options.allowHttp) {
     config.allowHttp = true;
+  }
+
+  if (options.allowLocalSchemas) {
+    config.allowLocalFileSchemas = true;
   }
 
   if (options.timeout) {
@@ -267,6 +272,7 @@ program
   .option('--verbose', 'Show detailed output')
   .option('--strict', 'Enable strict validation mode (smaller limits)')
   .option('--allow-http', 'Allow HTTP URLs (not recommended for production)')
+  .option('--allow-local-schemas', 'Allow extends to resolve local file paths relative to the template')
   .option('--timeout <seconds>', 'Network timeout in seconds', '10')
   .option('--max-template-size <kb>', 'Maximum template size in KB')
   .option('--max-content-elements <number>', 'Maximum number of content elements')

@@ -3,7 +3,8 @@
  */
 
 import { promises as fs } from 'fs';
-import { URL } from 'url';
+import * as path from 'path';
+import { pathToFileURL } from 'url';
 import {
   ITSTemplate,
   ContentElement,
@@ -416,15 +417,29 @@ export class ITSCompiler {
     // Replace description placeholder
     formattedTemplate = formattedTemplate.replace(/\{description\}/g, description);
 
-    // Replace other config placeholders
+    // Merge configSchema defaults beneath the supplied config so template
+    // strings render from defaults when a property is omitted
+    const substitutions: Record<string, unknown> = {};
+    const schemaProperties = instructionType.configSchema?.properties;
+    if (schemaProperties && typeof schemaProperties === 'object') {
+      for (const [key, propSchema] of Object.entries<any>(schemaProperties)) {
+        if (propSchema && typeof propSchema === 'object' && 'default' in propSchema) {
+          substitutions[key] = propSchema.default;
+        }
+      }
+    }
     for (const [key, value] of Object.entries(config)) {
       if (key !== 'description') {
-        const placeholder = `{${key}}`;
-        formattedTemplate = formattedTemplate.replace(
-          new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-          String(value)
-        );
+        substitutions[key] = value;
       }
+    }
+
+    for (const [key, value] of Object.entries(substitutions)) {
+      const placeholder = `{${key}}`;
+      formattedTemplate = formattedTemplate.replace(
+        new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+        String(value)
+      );
     }
 
     return formattedTemplate;
@@ -435,10 +450,8 @@ export class ITSCompiler {
    */
   private getBaseUrlFromPath(filePath: string): string {
     try {
-      const url = new URL(`file://${filePath}`);
-      const pathParts = url.pathname.split('/');
-      pathParts.pop(); // Remove filename
-      return url.protocol + '//' + pathParts.join('/') + '/';
+      const dirUrl = pathToFileURL(path.dirname(path.resolve(filePath))).href;
+      return dirUrl.endsWith('/') ? dirUrl : dirUrl + '/';
     } catch {
       return '';
     }

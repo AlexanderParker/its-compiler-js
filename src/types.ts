@@ -97,6 +97,7 @@ export enum OverrideType {
 
 export interface SecurityConfig {
   allowHttp: boolean;
+  allowLocalFileSchemas?: boolean;
   blockLocalhost: boolean;
   blockPrivateNetworks: boolean;
   domainAllowlist?: string[];

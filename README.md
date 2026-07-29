@@ -229,6 +229,21 @@ try {
 }
 ```
 
+### Published type libraries
+
+The specification publishes these instruction type libraries, all importable through `extends` from `https://alexanderparker.github.io/instruction-template-specification/schema/v1.0/`:
+
+| Library                     | File                        | Purpose                                                                        |
+| --------------------------- | --------------------------- | ------------------------------------------------------------------------------ |
+| Standard Types              | `its-standard-types-v1.json` | Prose content: titles, lists, paragraphs, tables, dialogue and more            |
+| JSON Types                  | `its-json-types-v1.json`     | Raw JSON output: values, objects, arrays, JSON Schema documents                |
+| HTML Types                  | `its-html-types-v1.json`     | Raw HTML fragments: containers, tables, lists, form fields (never full pages)  |
+| YAML Types                  | `its-yaml-types-v1.json`     | Raw YAML output: blocks, complete documents, markdown frontmatter              |
+
+The structured-output libraries (JSON, HTML, YAML) instruct the model to emit raw output with no markdown code fences and no commentary. If a placeholder omits a config property, defaults declared in the library's `configSchema` are substituted into the compiled instruction.
+
+Templates can also resolve `extends` entries from local file paths relative to the template, which is useful for developing new type libraries before they are published. This is disabled by default; enable it with `--allow-local-schemas` on the CLI or `allowLocalFileSchemas: true` in the security configuration.
+
 ## Security
 
 The compiler includes some built-in security protections - note that this is a best-effort, please thoroughly implement and test your own security safeguards when using this software:
