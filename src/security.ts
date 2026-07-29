@@ -47,9 +47,13 @@ export class SecurityValidator {
       this.validateVariables(template.variables, '', 0);
     }
 
-    // Validate extensions
+    // Validate extensions. Relative references have no scheme and are
+    // validated after resolution against the template's base URL.
     if (template.extends && Array.isArray(template.extends)) {
       for (const url of template.extends) {
+        if (typeof url === 'string' && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) {
+          continue;
+        }
         this.validateSchemaUrl(url);
       }
     }
@@ -269,6 +273,17 @@ export class SecurityValidator {
   validateSchemaUrl(url: string): void {
     try {
       const parsedUrl = new URL(url);
+
+      // Local file schemas are only permitted when explicitly enabled
+      if (parsedUrl.protocol === 'file:') {
+        if (this.config.allowLocalFileSchemas) {
+          if (parsedUrl.pathname.includes('..')) {
+            throw new ITSSecurityError('Path traversal detected in URL', 'path_traversal', 'SSRF_BLOCKED');
+          }
+          return;
+        }
+        throw new ITSSecurityError(`Dangerous protocol blocked: ${parsedUrl.protocol}`, 'url_protocol', 'SSRF_BLOCKED');
+      }
 
       // Check protocol
       if (!parsedUrl.protocol.startsWith('https:')) {
