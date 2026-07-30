@@ -1,7 +1,8 @@
 /**
  * Integration tests for the published structured-output type libraries
- * (JSON, HTML, YAML). Local fixture copies of the libraries are loaded via
- * relative extends with allowLocalFileSchemas, so no network is involved.
+ * (JSON, HTML, YAML). The libraries fill value positions inside structure
+ * authored verbatim in the template text. Local fixture copies are loaded
+ * via relative extends with allowLocalFileSchemas, so no network is involved.
  */
 
 import * as path from 'path';
@@ -43,55 +44,68 @@ describe('type library security', () => {
 });
 
 describe('JSON type library', () => {
-  it('compiles placeholders with the raw-output clause and escaped descriptions', async () => {
+  it('keeps the authored JSON structure verbatim with fills at value positions', async () => {
     const result = await localCompiler().compileFile(path.join(FIXTURES, 'json-types-template.json'));
 
+    // The document scaffolding comes from the template text, not the model
+    expect(result.prompt).toContain('{\n  "data": [\n');
+    expect(result.prompt).toContain('"page": 1,');
+    expect(result.prompt).toContain('"code": "not_found",');
+    // Fills carry the raw-output clause and escaped descriptions
     expect(result.prompt).toContain(RAW_OUTPUT_CLAUSES.json);
-    expect(result.prompt).toContain('([{<A orders API response object>}])');
-    expect(result.prompt).toContain('two_spaces indentation');
+    expect(result.prompt).toContain('([{<three orders objects with id and status fields>}])');
+    expect(result.prompt).toContain('without the enclosing square brackets');
+    expect(result.prompt).toContain('of kind integer');
   });
 
   it('evaluates conditionals from variables', async () => {
     const templatePath = path.join(FIXTURES, 'json-types-template.json');
 
     const withError = await localCompiler().compileFile(templatePath);
-    expect(withError.prompt).toContain('not_found error object');
+    expect(withError.prompt).toContain('not_found');
 
     const withoutError = await localCompiler().compileFile(templatePath, { includeErrorExample: false });
-    expect(withoutError.prompt).not.toContain('not_found error object');
+    expect(withoutError.prompt).not.toContain('not_found');
   });
 
   it('renders template strings from configSchema defaults when config is omitted', async () => {
     const result = await localCompiler().compileFile(path.join(FIXTURES, 'json-types-template.json'));
 
-    // json_schema placeholder sets only description; draft and indent defaults apply
-    expect(result.prompt).toContain('targets the 2020-12 draft');
-    expect(result.prompt).not.toContain('{draft}');
-    expect(result.prompt).not.toContain('{indent}');
+    // json_value placeholder sets only a description; valueType defaults to any
+    expect(result.prompt).toContain('of type any');
+    expect(result.prompt).not.toContain('{valueType}');
+    expect(result.prompt).not.toContain('{numberType}');
   });
 });
 
 describe('HTML type library', () => {
-  it('compiles placeholders with the raw-output clause and fragment-only wording', async () => {
+  it('keeps the authored markup verbatim with fills inside it', async () => {
     const result = await localCompiler().compileFile(path.join(FIXTURES, 'html-types-template.json'));
 
+    expect(result.prompt).toContain('<section class="product-card">');
+    expect(result.prompt).toContain('<thead><tr><th>Specification</th><th>Value</th></tr></thead>');
     expect(result.prompt).toContain(RAW_OUTPUT_CLAUSES.html);
-    expect(result.prompt).toContain('([{<A summary paragraph for the Solar Garden Lantern>}])');
-    expect(result.prompt).toContain('Do not include a doctype or html, head or body tags.');
-    // html_list placeholder relies on the listType default
-    expect(result.prompt).toContain('unordered list element');
-    expect(result.prompt).not.toContain('{listType}');
+    expect(result.prompt).toContain('([{<a summary of the Solar Garden Lantern>}])');
+    expect(result.prompt).toContain('without the enclosing list tags');
+    expect(result.prompt).toContain('without the enclosing table, thead or tbody tags');
+    // Booleans substitute JSON-style
+    expect(result.prompt).toContain('Inline markup such as strong, em and a is allowed: true.');
+    // html_fragment placeholder relies on the includeClasses default
+    expect(result.prompt).toContain('Include class attributes on elements: true.');
+    expect(result.prompt).not.toContain('{includeClasses}');
   });
 });
 
 describe('YAML type library', () => {
-  it('compiles placeholders with the raw-output clause and defaults', async () => {
+  it('keeps the authored YAML structure verbatim with fills at value positions', async () => {
     const result = await localCompiler().compileFile(path.join(FIXTURES, 'yaml-types-template.json'));
 
+    expect(result.prompt).toContain('build:\n  script:\n');
     expect(result.prompt).toContain(RAW_OUTPUT_CLAUSES.yaml);
-    expect(result.prompt).toContain('([{<A CI pipeline for example-storefront>}])');
-    // yaml_block placeholder relies on the indentSize default
-    expect(result.prompt).toContain('2-space indentation');
-    expect(result.prompt).not.toContain('{indentSize}');
+    expect(result.prompt).toContain('([{<commands that build example-storefront>}])');
+    expect(result.prompt).toContain('beginning with 4 spaces followed by a hyphen');
+    // yaml_block placeholder relies on the indentSpaces default
+    expect(result.prompt).toContain('indented by 2 spaces');
+    expect(result.prompt).not.toContain('{indentSpaces}');
   });
 });
