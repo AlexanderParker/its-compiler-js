@@ -105,6 +105,12 @@ export interface SecurityConfig {
   maxContentElements: number;
   maxNestingDepth: number;
   maxExpressionLength: number;
+  /** Maximum total variables including nested values (default 10000). */
+  maxVariableCount?: number;
+  /** Maximum items per variable array (default 1000). */
+  maxVariableArrayItems?: number;
+  /** Maximum length of a text element or string value (default 10000). */
+  maxTextLength?: number;
   requestTimeout: number;
 }
 

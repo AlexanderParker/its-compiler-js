@@ -7,6 +7,12 @@ import { ITSVariableError, ContentElement, TextElement, PlaceholderElement, Cond
 export class VariableProcessor {
   private static VARIABLE_PATTERN = /\$\{([^}]+)\}/g;
 
+  private maxTextLength: number;
+
+  constructor(maxTextLength: number = 10000) {
+    this.maxTextLength = maxTextLength;
+  }
+
   /**
    * Process variable references in content elements
    */
@@ -243,8 +249,8 @@ export class VariableProcessor {
 
     // Convert other types to string
     const strValue = String(value);
-    if (strValue.length > 1000) {
-      return strValue.substring(0, 1000) + '... [TRUNCATED]';
+    if (strValue.length > this.maxTextLength) {
+      return strValue.substring(0, this.maxTextLength) + '... [TRUNCATED]';
     }
 
     return strValue;

@@ -34,7 +34,7 @@ export class ITSCompiler {
   constructor(securityConfig: SecurityConfig = DEFAULT_SECURITY_CONFIG) {
     this.securityConfig = securityConfig;
     this.securityValidator = new SecurityValidator(securityConfig);
-    this.variableProcessor = new VariableProcessor();
+    this.variableProcessor = new VariableProcessor(securityConfig.maxTextLength ?? 10000);
     this.conditionalEvaluator = new ConditionalEvaluator(securityConfig.maxExpressionLength);
     this.schemaLoader = new SchemaLoader(3600000, securityConfig, securityConfig.requestTimeout);
   }
