@@ -60,6 +60,38 @@ describe('reference data sections', () => {
     expect(templateSection).not.toContain('| Monday |');
   });
 
+  it('renders one section per source when a placeholder synthesises several inputs', async () => {
+    const template = forecastTemplate({
+      variables: {
+        examResults: [{ subject: 'Maths', averageScore: 58 }],
+        attendance: [{ term: 'Term 1', attendancePct: 91 }],
+        surveyResults: [{ question: 'I feel supported', agreePct: 64 }],
+      },
+    });
+    template.content = [
+      {
+        type: 'placeholder',
+        instructionType: 'summary',
+        config: {
+          description: 'Recommend improvements using the examResults, attendance and surveyResults reference data',
+          dataSource: ['examResults', 'attendance', 'surveyResults'],
+        },
+      } as any,
+    ];
+
+    const result = await compiler.compile(template);
+
+    const examsAt = result.prompt.indexOf('### examResults');
+    const attendanceAt = result.prompt.indexOf('### attendance');
+    const surveyAt = result.prompt.indexOf('### surveyResults');
+    expect(examsAt).toBeGreaterThan(-1);
+    expect(attendanceAt).toBeGreaterThan(examsAt);
+    expect(surveyAt).toBeGreaterThan(attendanceAt);
+    expect(result.prompt).toContain('| Maths | 58 |');
+    expect(result.prompt).toContain('| Term 1 | 91 |');
+    expect(result.prompt).toContain('| I feel supported | 64 |');
+  });
+
   it('deduplicates sources referenced by multiple placeholders', async () => {
     const template = forecastTemplate();
     template.content.push({
