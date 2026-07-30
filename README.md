@@ -298,6 +298,15 @@ These commands will:
 
 Make sure you have the `NPM_TOKEN` secret configured in your GitHub repository settings for automated publishing to work.
 
+## ITS ecosystem
+
+- [Specification](https://alexanderparker.github.io/instruction-template-specification/) - the ITS spec, schemas and documentation ([source](https://github.com/AlexanderParker/instruction-template-specification))
+- [Template studio demo](https://alexanderparker.github.io/its-template-studio/) - build and compile templates in the browser ([source](https://github.com/AlexanderParker/its-template-studio))
+- [its-template-editor](https://github.com/AlexanderParker/its-wysiwyg-common) - the WYSIWYG React editor component behind the studio
+- [its-compiler-python](https://github.com/AlexanderParker/its-compiler-python) - Python reference compiler library ([PyPI](https://pypi.org/project/its-compiler/))
+- [its-compiler-cli](https://github.com/AlexanderParker/its-compiler-cli-python) - command-line interface for the Python compiler ([PyPI](https://pypi.org/project/its-compiler-cli/))
+- [its-example-templates](https://github.com/AlexanderParker/its-example-templates) - example and test templates exercising the published schemas
+
 ## License
 
 MIT - see [LICENSE](LICENSE) file for details.
