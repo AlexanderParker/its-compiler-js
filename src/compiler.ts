@@ -19,6 +19,7 @@ import {
   SecurityConfig,
 } from './types.js';
 import { SecurityValidator, DEFAULT_SECURITY_CONFIG } from './security.js';
+import { collectDataSourceNames, renderDataSource, REFERENCE_DATA_INSTRUCTION } from './reference-data.js';
 import { VariableProcessor } from './variable-processor.js';
 import { ConditionalEvaluator } from './conditional-evaluator.js';
 import { SchemaLoader } from './schema-loader.js';
@@ -107,7 +108,7 @@ export class ITSCompiler {
       const finalContent = this.conditionalEvaluator.evaluateContent(processedContent, mergedVariables);
 
       // Generate final prompt
-      const prompt = this.generatePrompt(finalContent, instructionTypes, template);
+      const prompt = this.generatePrompt(finalContent, instructionTypes, template, mergedVariables);
 
       const compilationTime = Date.now() - startTime;
 
@@ -333,13 +334,35 @@ export class ITSCompiler {
   private generatePrompt(
     content: ContentElement[],
     instructionTypes: Record<string, InstructionTypeDefinition>,
-    template: ITSTemplate
+    template: ITSTemplate,
+    variables: Record<string, any> = {}
   ): string {
     // Get compiler configuration
     const compilerConfig = template.compilerConfig || {};
     const systemPrompt = compilerConfig.systemPrompt || this.getDefaultSystemPrompt();
     const instructionWrapper = compilerConfig.instructionWrapper || '<<{instruction}>>';
-    const processingInstructions = compilerConfig.processingInstructions || this.getDefaultProcessingInstructions();
+    const baseInstructions = compilerConfig.processingInstructions || this.getDefaultProcessingInstructions();
+
+    // Reference data: variables named by placeholder dataSource configs are
+    // rendered once above the template as context the model must not output
+    const dataSourceNames = collectDataSourceNames(content);
+    const referenceParts: string[] = [];
+    if (dataSourceNames.length > 0) {
+      referenceParts.push('REFERENCE DATA', '');
+      for (const name of dataSourceNames) {
+        if (!(name in variables)) {
+          throw new ITSCompilationError(
+            `Unknown data source '${name}': no variable with that name`,
+            undefined,
+            undefined,
+            'data_source'
+          );
+        }
+        referenceParts.push(`### ${name}`, '', renderDataSource(variables[name]), '');
+      }
+    }
+    const processingInstructions =
+      dataSourceNames.length > 0 ? [...baseInstructions, REFERENCE_DATA_INSTRUCTION] : baseInstructions;
 
     // Process content elements
     const processedContent: string[] = [];
@@ -368,7 +391,9 @@ export class ITSCompiler {
       promptParts.push(`${i + 1}. ${instruction}`);
     });
 
-    promptParts.push('', 'TEMPLATE', '', processedContent.join(''));
+    promptParts.push('');
+    promptParts.push(...referenceParts);
+    promptParts.push('TEMPLATE', '', processedContent.join(''));
 
     return promptParts.join('\n');
   }

@@ -8,6 +8,7 @@
 import { ITSCompiler } from './compiler.js';
 export { ITSCompiler } from './compiler.js';
 export { SecurityValidator, DEFAULT_SECURITY_CONFIG } from './security.js';
+export { collectDataSourceNames, renderDataSource, REFERENCE_DATA_INSTRUCTION } from './reference-data.js';
 export { VariableProcessor } from './variable-processor.js';
 export { ConditionalEvaluator } from './conditional-evaluator.js';
 export { SchemaLoader } from './schema-loader.js';
