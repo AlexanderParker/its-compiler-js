@@ -109,6 +109,66 @@ describe('reference data sections', () => {
   });
 });
 
+describe('data limits', () => {
+  let compiler: ITSCompiler;
+
+  beforeEach(() => {
+    compiler = new ITSCompiler();
+  });
+
+  it('caps included items at the placeholder dataLimit and states the truncation', async () => {
+    const template = forecastTemplate();
+    (template.content[1] as any).config.dataLimit = 2;
+
+    const result = await compiler.compile(template);
+
+    expect(result.prompt).toContain('| Monday | 29 | false |');
+    expect(result.prompt).toContain('| Tuesday | 32 | false |');
+    expect(result.prompt).not.toContain('| Sunday |');
+    expect(result.prompt).toContain('Showing the first 2 of 3 items.');
+  });
+
+  it('uses the maximum limit when placeholders share a source', async () => {
+    const template = forecastTemplate();
+    (template.content[1] as any).config.dataLimit = 1;
+    template.content.push({
+      type: 'placeholder',
+      instructionType: 'summary',
+      config: { description: 'More from the forecast reference data', dataSource: 'forecast', dataLimit: 2 },
+    } as any);
+
+    const result = await compiler.compile(template);
+
+    expect(result.prompt).toContain('Showing the first 2 of 3 items.');
+    expect(result.prompt.match(/### forecast/g)).toHaveLength(1);
+  });
+
+  it('treats an unlimited reference as more generous than any limit', async () => {
+    const template = forecastTemplate();
+    (template.content[1] as any).config.dataLimit = 1;
+    template.content.push({
+      type: 'placeholder',
+      instructionType: 'summary',
+      config: { description: 'Everything from the forecast reference data', dataSource: 'forecast' },
+    } as any);
+
+    const result = await compiler.compile(template);
+
+    expect(result.prompt).toContain('| Sunday | 27 | true |');
+    expect(result.prompt).not.toContain('Showing the first');
+  });
+
+  it('ignores limits that do not truncate', async () => {
+    const template = forecastTemplate();
+    (template.content[1] as any).config.dataLimit = 50;
+
+    const result = await compiler.compile(template);
+
+    expect(result.prompt).toContain('| Sunday | 27 | true |');
+    expect(result.prompt).not.toContain('Showing the first');
+  });
+});
+
 describe('renderDataSource', () => {
   it('renders arrays of primitives as a list', () => {
     expect(renderDataSource(['a', 'b'])).toBe('- a\n- b');

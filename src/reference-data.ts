@@ -16,20 +16,44 @@ type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string
 export const REFERENCE_DATA_INSTRUCTION =
   'Use the REFERENCE DATA section as context when generating placeholder content - never include the reference data itself in your output';
 
-/** Collects data source names from placeholder configs, deduplicated in order of first appearance. */
-export function collectDataSourceNames(content: ContentElement[]): string[] {
-  const names: string[] = [];
+export interface DataSourceRequest {
+  name: string;
+  /** Maximum items or fields to include, or null for the full data. */
+  limit: number | null;
+}
+
+/**
+ * Collects data sources from placeholder configs, deduplicated in order of
+ * first appearance. A placeholder's optional dataLimit config caps how much
+ * of each of its sources is included; when several placeholders reference
+ * the same source the most generous request wins (no limit beats any limit,
+ * otherwise the maximum).
+ */
+export function collectDataSources(content: ContentElement[]): DataSourceRequest[] {
+  const requests: DataSourceRequest[] = [];
   for (const element of content) {
     if (element.type !== 'placeholder') continue;
-    const raw = ((element as PlaceholderElement).config as Record<string, JsonValue | undefined>).dataSource;
+    const config = (element as PlaceholderElement).config as Record<string, JsonValue | undefined>;
+    const raw = config.dataSource;
+    const rawLimit = config.dataLimit;
+    const limit = typeof rawLimit === 'number' && Number.isInteger(rawLimit) && rawLimit >= 1 ? rawLimit : null;
     const candidates = typeof raw === 'string' ? [raw] : Array.isArray(raw) ? raw : [];
     for (const candidate of candidates) {
-      if (typeof candidate === 'string' && candidate.length > 0 && !names.includes(candidate)) {
-        names.push(candidate);
+      if (typeof candidate !== 'string' || candidate.length === 0) continue;
+      const existing = requests.find((request) => request.name === candidate);
+      if (existing === undefined) {
+        requests.push({ name: candidate, limit });
+      } else if (existing.limit !== null) {
+        existing.limit = limit === null ? null : Math.max(existing.limit, limit);
       }
     }
   }
-  return names;
+  return requests;
+}
+
+/** @deprecated Use collectDataSources; kept for API compatibility. */
+export function collectDataSourceNames(content: ContentElement[]): string[] {
+  return collectDataSources(content).map((request) => request.name);
 }
 
 function isPlainObject(value: JsonValue): value is { [key: string]: JsonValue } {
@@ -58,20 +82,30 @@ function renderObjectTable(rows: Array<{ [key: string]: JsonValue }>): string {
   return lines.join('\n');
 }
 
-/** Renders one data source as markdown: arrays of objects become tables, plain objects become field/value tables. */
-export function renderDataSource(value: JsonValue): string {
+/**
+ * Renders one data source as markdown: arrays of objects become tables,
+ * plain objects become field/value tables. A limit caps how many items or
+ * fields are included, with the truncation stated so the model knows the
+ * data is partial.
+ */
+export function renderDataSource(value: JsonValue, limit: number | null = null): string {
   if (Array.isArray(value)) {
-    if (value.length > 0 && value.every(isPlainObject)) {
-      return renderObjectTable(value as Array<{ [key: string]: JsonValue }>);
+    const items = limit !== null && limit < value.length ? value.slice(0, limit) : value;
+    const note = items.length < value.length ? `\n\nShowing the first ${items.length} of ${value.length} items.` : '';
+    if (items.length > 0 && items.every(isPlainObject)) {
+      return renderObjectTable(items as Array<{ [key: string]: JsonValue }>) + note;
     }
-    return value.map((item) => `- ${renderCell(item)}`).join('\n');
+    return items.map((item) => `- ${renderCell(item)}`).join('\n') + note;
   }
   if (isPlainObject(value)) {
+    const entries = Object.entries(value);
+    const shown = limit !== null && limit < entries.length ? entries.slice(0, limit) : entries;
+    const note = shown.length < entries.length ? `\n\nShowing the first ${shown.length} of ${entries.length} fields.` : '';
     const lines = ['| Field | Value |', '| --- | --- |'];
-    for (const [key, item] of Object.entries(value)) {
+    for (const [key, item] of shown) {
       lines.push(`| ${renderCell(key)} | ${renderCell(item)} |`);
     }
-    return lines.join('\n');
+    return lines.join('\n') + note;
   }
   return renderCell(value);
 }
