@@ -261,11 +261,16 @@ const securityConfig = {
   blockLocalhost: true, // Block localhost
   maxTemplateSize: 1024 * 1024, // 1MB limit
   maxContentElements: 1000, // Max elements
+  maxVariableCount: 10000, // Max total variables including nested values
+  maxVariableArrayItems: 1000, // Max items per variable array
+  maxTextLength: 10000, // Max length of a text element or string value
   requestTimeout: 10000, // 10 second timeout
 };
 
 const compiler = new ITSCompiler(securityConfig);
 ```
+
+All processing limits are configurable (also via `--max-variable-count`, `--max-variable-array-items` and `--max-text-length` on the CLI), sized so reference data workloads with large datasets can be accommodated by the operator.
 
 ## Related Projects
 

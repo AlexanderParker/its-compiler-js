@@ -87,7 +87,31 @@ export class SecurityValidator {
   /**
    * Validate text content for malicious patterns
    */
+  private countTotalVariables(value: any, depth: number): number {
+    if (depth > this.config.maxNestingDepth) return 0;
+    let count = 0;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        count += this.countTotalVariables(item, depth + 1);
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      count += Object.keys(value).length;
+      for (const item of Object.values(value)) {
+        count += this.countTotalVariables(item, depth + 1);
+      }
+    }
+    return count;
+  }
+
   private validateTextContent(text: string): void {
+    const maxTextLength = this.config.maxTextLength ?? 10000;
+    if (text.length > maxTextLength) {
+      throw new ITSSecurityError(
+        `Text content too long: ${text.length} characters (max: ${maxTextLength})`,
+        'text_length',
+        'SIZE_LIMIT_EXCEEDED'
+      );
+    }
     const dangerousPatterns = [
       /<script[^>]*>.*?<\/script>/gi,
       /javascript\s*:/gi,
@@ -177,6 +201,18 @@ export class SecurityValidator {
       throw new ITSSecurityError(`Variable nesting too deep at ${path}`, 'variable_nesting', 'SIZE_LIMIT_EXCEEDED');
     }
 
+    if (path === '' && depth === 0) {
+      const maxVariableCount = this.config.maxVariableCount ?? 10000;
+      const total = this.countTotalVariables(variables, 0);
+      if (total > maxVariableCount) {
+        throw new ITSSecurityError(
+          `Too many variables: ${total} (max: ${maxVariableCount})`,
+          'variable_count',
+          'SIZE_LIMIT_EXCEEDED'
+        );
+      }
+    }
+
     // Check for prototype pollution by examining the object's prototype
     if (variables.__proto__ && variables.__proto__ !== Object.prototype) {
       throw new ITSSecurityError(
@@ -213,7 +249,7 @@ export class SecurityValidator {
       } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         this.validateVariables(value, currentPath, depth + 1);
       } else if (Array.isArray(value)) {
-        if (value.length > 1000) {
+        if (value.length > (this.config.maxVariableArrayItems ?? 1000)) {
           throw new ITSSecurityError(
             `Array too large at ${currentPath}: ${value.length} items`,
             'array_size',
@@ -398,6 +434,9 @@ export const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
   maxContentElements: 1000,
   maxNestingDepth: 10,
   maxExpressionLength: 500,
+  maxVariableCount: 10000,
+  maxVariableArrayItems: 1000,
+  maxTextLength: 10000,
   requestTimeout: 10000, // 10 seconds
 };
 

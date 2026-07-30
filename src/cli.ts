@@ -26,6 +26,9 @@ interface CliOptions {
   timeout?: string;
   maxTemplateSize?: string;
   maxContentElements?: string;
+  maxVariableCount?: string;
+  maxVariableArrayItems?: string;
+  maxTextLength?: string;
 }
 
 async function loadVariables(variablesPath: string): Promise<Record<string, any>> {
@@ -78,6 +81,18 @@ function createSecurityConfig(options: CliOptions): SecurityConfig {
 
   if (options.maxContentElements) {
     config.maxContentElements = parseInt(options.maxContentElements, 10);
+  }
+
+  if (options.maxVariableCount) {
+    config.maxVariableCount = parseInt(options.maxVariableCount, 10);
+  }
+
+  if (options.maxVariableArrayItems) {
+    config.maxVariableArrayItems = parseInt(options.maxVariableArrayItems, 10);
+  }
+
+  if (options.maxTextLength) {
+    config.maxTextLength = parseInt(options.maxTextLength, 10);
   }
 
   return config;
@@ -276,6 +291,9 @@ program
   .option('--timeout <seconds>', 'Network timeout in seconds', '10')
   .option('--max-template-size <kb>', 'Maximum template size in KB')
   .option('--max-content-elements <number>', 'Maximum number of content elements')
+  .option('--max-variable-count <number>', 'Maximum total variables including nested values')
+  .option('--max-variable-array-items <number>', 'Maximum items per variable array')
+  .option('--max-text-length <number>', 'Maximum length of a text element or string value')
   .action(async (templateFile: string, options: CliOptions) => {
     try {
       // Check if template file exists
