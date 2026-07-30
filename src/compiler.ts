@@ -19,7 +19,7 @@ import {
   SecurityConfig,
 } from './types.js';
 import { SecurityValidator, DEFAULT_SECURITY_CONFIG } from './security.js';
-import { collectDataSourceNames, renderDataSource, REFERENCE_DATA_INSTRUCTION } from './reference-data.js';
+import { collectDataSources, renderDataSource, REFERENCE_DATA_INSTRUCTION } from './reference-data.js';
 import { VariableProcessor } from './variable-processor.js';
 import { ConditionalEvaluator } from './conditional-evaluator.js';
 import { SchemaLoader } from './schema-loader.js';
@@ -345,11 +345,11 @@ export class ITSCompiler {
 
     // Reference data: variables named by placeholder dataSource configs are
     // rendered once above the template as context the model must not output
-    const dataSourceNames = collectDataSourceNames(content);
+    const dataSources = collectDataSources(content);
     const referenceParts: string[] = [];
-    if (dataSourceNames.length > 0) {
+    if (dataSources.length > 0) {
       referenceParts.push('REFERENCE DATA', '');
-      for (const name of dataSourceNames) {
+      for (const { name, limit } of dataSources) {
         if (!(name in variables)) {
           throw new ITSCompilationError(
             `Unknown data source '${name}': no variable with that name`,
@@ -358,11 +358,11 @@ export class ITSCompiler {
             'data_source'
           );
         }
-        referenceParts.push(`### ${name}`, '', renderDataSource(variables[name]), '');
+        referenceParts.push(`### ${name}`, '', renderDataSource(variables[name], limit), '');
       }
     }
     const processingInstructions =
-      dataSourceNames.length > 0 ? [...baseInstructions, REFERENCE_DATA_INSTRUCTION] : baseInstructions;
+      dataSources.length > 0 ? [...baseInstructions, REFERENCE_DATA_INSTRUCTION] : baseInstructions;
 
     // Process content elements
     const processedContent: string[] = [];
