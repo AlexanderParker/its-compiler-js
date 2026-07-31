@@ -14,21 +14,32 @@ export class VariableProcessor {
   }
 
   /**
-   * Process variable references in content elements
+   * Process variable references in content elements. When objectReferences
+   * is provided, references resolving to plain objects substitute a pointer
+   * ("the settings reference data") and the object is collected so the
+   * compiler can render it in the REFERENCE DATA section.
    */
-  processContent(content: ContentElement[], variables: Record<string, any>): ContentElement[] {
-    return content.map(element => this.processElement(element, variables));
+  processContent(
+    content: ContentElement[],
+    variables: Record<string, any>,
+    objectReferences?: Map<string, any>
+  ): ContentElement[] {
+    return content.map(element => this.processElement(element, variables, objectReferences));
   }
 
   /**
    * Process variables in a single content element
    */
-  private processElement(element: ContentElement, variables: Record<string, any>): ContentElement {
+  private processElement(
+    element: ContentElement,
+    variables: Record<string, any>,
+    objectReferences?: Map<string, any>
+  ): ContentElement {
     if (element.type === 'text') {
       const textElement = element as TextElement;
       return {
         ...element,
-        text: this.processString(textElement.text, variables),
+        text: this.processString(textElement.text, variables, objectReferences),
       } as TextElement;
     }
 
@@ -36,7 +47,7 @@ export class VariableProcessor {
       const placeholderElement = element as PlaceholderElement;
       return {
         ...element,
-        config: this.processObject(placeholderElement.config, variables),
+        config: this.processObject(placeholderElement.config, variables, objectReferences),
       } as PlaceholderElement;
     }
 
@@ -45,8 +56,10 @@ export class VariableProcessor {
       return {
         ...element,
         condition: this.processString(conditionalElement.condition, variables),
-        content: this.processContent(conditionalElement.content, variables),
-        else: conditionalElement.else ? this.processContent(conditionalElement.else, variables) : undefined,
+        content: this.processContent(conditionalElement.content, variables, objectReferences),
+        else: conditionalElement.else
+          ? this.processContent(conditionalElement.else, variables, objectReferences)
+          : undefined,
       } as ConditionalElement;
     }
 
@@ -56,19 +69,19 @@ export class VariableProcessor {
   /**
    * Process variables in an object
    */
-  private processObject(obj: any, variables: Record<string, any>): any {
+  private processObject(obj: any, variables: Record<string, any>, objectReferences?: Map<string, any>): any {
     if (typeof obj === 'string') {
-      return this.processString(obj, variables);
+      return this.processString(obj, variables, objectReferences);
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => this.processObject(item, variables));
+      return obj.map(item => this.processObject(item, variables, objectReferences));
     }
 
     if (typeof obj === 'object' && obj !== null) {
       const result: any = {};
       for (const [key, value] of Object.entries(obj)) {
-        result[key] = this.processObject(value, variables);
+        result[key] = this.processObject(value, variables, objectReferences);
       }
       return result;
     }
@@ -79,10 +92,20 @@ export class VariableProcessor {
   /**
    * Process variable references in a string
    */
-  private processString(text: string, variables: Record<string, any>): string {
+  private processString(text: string, variables: Record<string, any>, objectReferences?: Map<string, any>): string {
     return text.replace(VariableProcessor.VARIABLE_PATTERN, (_match, varRef) => {
       try {
-        const value = this.resolveVariableReference(varRef.trim(), variables);
+        const reference = varRef.trim();
+        const value = this.resolveVariableReference(reference, variables);
+        if (
+          objectReferences !== undefined &&
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        ) {
+          objectReferences.set(reference, value);
+          return `the ${reference} reference data`;
+        }
         return this.sanitiseResolvedValue(value);
       } catch (error) {
         if (error instanceof ITSVariableError) {
