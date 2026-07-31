@@ -224,7 +224,7 @@ describe('ITSCompiler', () => {
         ],
       };
 
-      await expect(strictCompiler.compile(maliciousTemplate)).rejects.toThrow();
+      await expect(strictCompiler.compile(maliciousTemplate)).rejects.toThrow(/Malicious content detected in text/);
     });
 
     it('should block dangerous variable names', async () => {
@@ -244,7 +244,9 @@ describe('ITSCompiler', () => {
       // Explicitly set the dangerous property
       (maliciousTemplate.variables as any)['__proto__'] = { malicious: true };
 
-      await expect(compiler.compile(maliciousTemplate)).rejects.toThrow();
+      await expect(compiler.compile(maliciousTemplate)).rejects.toThrow(
+        /Prototype pollution detected: __proto__|Dangerous property detected: __proto__/
+      );
     });
 
     it('should block dangerous conditional expressions', async () => {
@@ -259,7 +261,9 @@ describe('ITSCompiler', () => {
         ],
       };
 
-      await expect(compiler.compile(maliciousTemplate)).rejects.toThrow();
+      await expect(compiler.compile(maliciousTemplate)).rejects.toThrow(
+        /Dangerous pattern in conditional expression/
+      );
     });
   });
 

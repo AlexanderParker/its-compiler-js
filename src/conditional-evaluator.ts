@@ -5,6 +5,45 @@
 import jsep from 'jsep';
 import { ITSSecurityError, ContentElement } from './types.js';
 
+// Spec membership operators; same precedence as the comparison operators
+jsep.addBinaryOp('in', 7);
+jsep.addBinaryOp('notin', 7);
+
+const COMPARISON_OPERATORS = new Set(['==', '===', '!=', '!==', '<', '<=', '>', '>=']);
+
+/**
+ * Translates the spec's word-form operators (and, or, not, not in) to the
+ * symbol forms jsep parses, leaving string literals untouched.
+ */
+export function translateConditionOperators(condition: string): string {
+  let result = '';
+  let i = 0;
+  while (i < condition.length) {
+    const char = condition[i];
+    if (char === '"' || char === "'") {
+      let j = i + 1;
+      while (j < condition.length && condition[j] !== char) {
+        j++;
+      }
+      result += condition.slice(i, Math.min(j + 1, condition.length));
+      i = j + 1;
+      continue;
+    }
+    let j = i;
+    while (j < condition.length && condition[j] !== '"' && condition[j] !== "'") {
+      j++;
+    }
+    result += condition
+      .slice(i, j)
+      .replace(/\bnot\s+in\b/g, 'notin')
+      .replace(/\band\b/g, '&&')
+      .replace(/\bor\b/g, '||')
+      .replace(/\bnot\b/g, '!');
+    i = j;
+  }
+  return result;
+}
+
 export class ConditionalEvaluator {
   private maxExpressionLength: number;
 
@@ -50,7 +89,7 @@ export class ConditionalEvaluator {
 
     try {
       // Parse the expression into AST
-      const ast = jsep(condition);
+      const ast = jsep(translateConditionOperators(condition));
 
       // Evaluate the AST safely
       const result = this.evaluateASTNode(ast, variables);
@@ -139,30 +178,30 @@ export class ConditionalEvaluator {
         // Validate property access for security
         this.validatePropertyAccess(object, property);
 
+        if (Array.isArray(object) && typeof property === 'number' && property < 0) {
+          return object[object.length + property];
+        }
         return object[property];
       }
 
       case 'BinaryExpression': {
+        if (node.operator === 'in' || node.operator === 'notin') {
+          const item = this.evaluateASTNode(node.left, variables);
+          const container = this.evaluateASTNode(node.right, variables);
+          const contained = this.testMembership(item, container);
+          return node.operator === 'in' ? contained : !contained;
+        }
+
+        // Comparisons chain like the spec (1 < x <= 5 means both halves),
+        // not left-associatively on the boolean result
+        if (COMPARISON_OPERATORS.has(node.operator)) {
+          return this.evaluateComparisonChain(node, variables);
+        }
+
         const left = this.evaluateASTNode(node.left, variables);
         const right = this.evaluateASTNode(node.right, variables);
 
         switch (node.operator) {
-          case '==':
-            return left == right;
-          case '===':
-            return left === right;
-          case '!=':
-            return left != right;
-          case '!==':
-            return left !== right;
-          case '<':
-            return left < right;
-          case '<=':
-            return left <= right;
-          case '>':
-            return left > right;
-          case '>=':
-            return left >= right;
           // Handle logical operators in case jsep treats them as binary
           case '&&':
             return left && right;
@@ -214,6 +253,68 @@ export class ConditionalEvaluator {
       default:
         throw new Error(`Unsupported expression type: ${node.type}`);
     }
+  }
+
+  private evaluateComparisonChain(node: any, variables: Record<string, any>): boolean {
+    const operands: any[] = [];
+    const operators: string[] = [];
+    let current = node;
+    while (
+      current.type === 'BinaryExpression' &&
+      COMPARISON_OPERATORS.has(current.operator) &&
+      current.left?.type === 'BinaryExpression' &&
+      COMPARISON_OPERATORS.has(current.left.operator)
+    ) {
+      operators.unshift(current.operator);
+      operands.unshift(current.right);
+      current = current.left;
+    }
+    operators.unshift(current.operator);
+    operands.unshift(current.left, current.right);
+
+    let left = this.evaluateASTNode(operands[0], variables);
+    for (let i = 0; i < operators.length; i++) {
+      const right = this.evaluateASTNode(operands[i + 1], variables);
+      if (!this.applyComparison(operators[i], left, right)) {
+        return false;
+      }
+      left = right;
+    }
+    return true;
+  }
+
+  private applyComparison(operator: string, left: any, right: any): boolean {
+    switch (operator) {
+      case '==':
+        return left == right;
+      case '===':
+        return left === right;
+      case '!=':
+        return left != right;
+      case '!==':
+        return left !== right;
+      case '<':
+        return left < right;
+      case '<=':
+        return left <= right;
+      case '>':
+        return left > right;
+      default:
+        return left >= right;
+    }
+  }
+
+  private testMembership(item: any, container: any): boolean {
+    if (Array.isArray(container)) {
+      return container.includes(item);
+    }
+    if (typeof container === 'string') {
+      if (typeof item !== 'string') {
+        throw new Error(`'in' on a string requires a string left operand`);
+      }
+      return container.includes(item);
+    }
+    throw new Error(`'in' requires an array or string right operand`);
   }
 
   /**
@@ -272,7 +373,7 @@ export class ConditionalEvaluator {
       this.validateConditionSecurity(condition);
 
       // Try to parse with jsep
-      const ast = jsep(condition);
+      const ast = jsep(translateConditionOperators(condition));
 
       // Try to evaluate
       this.evaluateASTNode(ast, variables);

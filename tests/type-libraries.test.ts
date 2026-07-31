@@ -5,7 +5,9 @@
  * via relative extends with allowLocalFileSchemas, so no network is involved.
  */
 
+import * as fs from 'fs';
 import * as path from 'path';
+import * as url from 'url';
 import { ITSCompiler } from '../src/compiler';
 import { SecurityValidator, DEFAULT_SECURITY_CONFIG } from '../src/security';
 
@@ -31,11 +33,41 @@ describe('type library security', () => {
     }
   });
 
+  it('blocks localhost, private-network, traversal and dangerous-protocol schema URLs', () => {
+    const validator = new SecurityValidator(DEFAULT_SECURITY_CONFIG);
+
+    expect(() => validator.validateSchemaUrl('https://localhost/schema.json')).toThrow(
+      /Localhost access blocked: localhost/
+    );
+    expect(() => validator.validateSchemaUrl('https://127.0.0.1/schema.json')).toThrow(/Localhost access blocked/);
+    expect(() => validator.validateSchemaUrl('https://192.168.1.10/schema.json')).toThrow(/blocked/);
+    expect(() => validator.validateSchemaUrl('http://example.com/schema.json')).toThrow(
+      /Protocol not allowed: http:/
+    );
+    expect(() => validator.validateSchemaUrl('ftp://example.com/schema.json')).toThrow(/not allowed|blocked/);
+
+    const allowlisted = new SecurityValidator({
+      ...DEFAULT_SECURITY_CONFIG,
+      domainAllowlist: ['alexanderparker.github.io'],
+    });
+    expect(() => allowlisted.validateSchemaUrl('https://example.com/schema.json')).toThrow(
+      /Domain not in allowlist: example.com/
+    );
+    expect(() =>
+      allowlisted.validateSchemaUrl(
+        'https://alexanderparker.github.io/instruction-template-specification/schema/v1.0/its-standard-types-v1.json'
+      )
+    ).not.toThrow();
+  });
+
   it('rejects file schema URLs unless allowLocalFileSchemas is enabled', async () => {
     const templatePath = path.join(FIXTURES, 'json-types-template.json');
 
     const blocked = new ITSCompiler();
-    await expect(blocked.compileFile(templatePath)).rejects.toThrow();
+    const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+    const validation = await blocked.validate(template, url.pathToFileURL(FIXTURES).href + '/');
+    expect(validation.isValid).toBe(false);
+    expect(validation.errors.join('\n')).toMatch(/Dangerous protocol blocked: file:/);
 
     const allowed = localCompiler();
     const result = await allowed.compileFile(templatePath);

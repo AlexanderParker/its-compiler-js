@@ -4,6 +4,7 @@
  */
 
 import { ITSCompiler } from '../src/compiler';
+import { VariableProcessor } from '../src/variable-processor';
 import type { ITSTemplate } from '../src/types';
 
 function template(text: string): ITSTemplate {
@@ -34,11 +35,11 @@ describe('collection functions', () => {
   });
 
   it('sum, avg, min and max aggregate numeric values', async () => {
-    expect(await compileText('${forecast.sum(high)}')).toContain('82');
-    expect(await compileText('${scores.sum()}')).toContain('15');
-    expect(await compileText('${scores.avg()}')).toContain('5');
-    expect(await compileText('${forecast.min(high)}')).toContain('24');
-    expect(await compileText('${forecast.max(high)}')).toContain('31');
+    expect(await compileText('sum=${forecast.sum(high)}.')).toContain('sum=82.');
+    expect(await compileText('sum=${scores.sum()}.')).toContain('sum=15.');
+    expect(await compileText('avg=${scores.avg()}.')).toContain('avg=5.');
+    expect(await compileText('min=${forecast.min(high)}.')).toContain('min=24.');
+    expect(await compileText('max=${forecast.max(high)}.')).toContain('max=31.');
   });
 
   it('top slices and chains with concat', async () => {
@@ -50,11 +51,36 @@ describe('collection functions', () => {
     expect(await compileText('${forecast.concat(wet)}')).toContain('false, true, false');
   });
 
-  it('rejects functions on non-arrays and unknown properties', async () => {
-    // Invalid usages are caught during template validation before compile
-    await expect(compileText('${forecast[0].sum(high)}')).rejects.toThrow();
-    await expect(compileText('${forecast.sum(missing)}')).rejects.toThrow();
-    await expect(compileText('${forecast.sum(day)}')).rejects.toThrow();
-    await expect(compileText('${forecast.top(x)}')).rejects.toThrow();
+  it('rejects invalid usages with distinct messages', () => {
+    const processor = new VariableProcessor();
+    const vars = template('').variables as Record<string, any>;
+
+    expect(() => processor.resolveVariableReference('forecast[0].sum(high)', vars)).toThrow(
+      /sum\(\) requires an array/
+    );
+    expect(() => processor.resolveVariableReference('forecast.sum(missing)', vars)).toThrow(
+      /Property 'missing' not found on every item/
+    );
+    expect(() => processor.resolveVariableReference('forecast.sum(day)', vars)).toThrow(
+      /sum\(\) requires numeric values/
+    );
+    expect(() => processor.resolveVariableReference('forecast.top(x)', vars)).toThrow(
+      /top\(\) requires a non-negative integer/
+    );
+    expect(() => processor.resolveVariableReference('scores.avg(', vars)).toThrow(/Invalid variable reference syntax/);
+    expect(() => processor.resolveVariableReference('forecast.concat(day).sum()', vars)).toThrow(
+      /sum\(\) requires an array/
+    );
+  });
+
+  it('surfaces invalid usages as validation failures at compile time', async () => {
+    // The compile path wraps the message; the specific cause is in validationErrors
+    expect.assertions(2);
+    try {
+      await compileText('${forecast.sum(day)}');
+    } catch (error: any) {
+      expect(error.message).toBe('Template validation failed');
+      expect(error.validationErrors.join('\n')).toMatch(/sum\(\) requires numeric values/);
+    }
   });
 });
