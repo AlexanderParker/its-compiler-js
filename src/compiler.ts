@@ -101,14 +101,20 @@ export class ITSCompiler {
       // Load and resolve instruction types
       const { instructionTypes, overrides } = await this.loadInstructionTypes(template, mergedOptions.baseUrl);
 
-      // Process variables in content
-      const processedContent = this.variableProcessor.processContent(template.content, mergedVariables);
+      // Process variables in content; object-valued references are collected
+      // and rendered as reference data
+      const objectReferences = new Map<string, any>();
+      const processedContent = this.variableProcessor.processContent(
+        template.content,
+        mergedVariables,
+        objectReferences
+      );
 
       // Evaluate conditionals
       const finalContent = this.conditionalEvaluator.evaluateContent(processedContent, mergedVariables);
 
       // Generate final prompt
-      const prompt = this.generatePrompt(finalContent, instructionTypes, template, mergedVariables);
+      const prompt = this.generatePrompt(finalContent, instructionTypes, template, mergedVariables, objectReferences);
 
       const compilationTime = Date.now() - startTime;
 
@@ -335,7 +341,8 @@ export class ITSCompiler {
     content: ContentElement[],
     instructionTypes: Record<string, InstructionTypeDefinition>,
     template: ITSTemplate,
-    variables: Record<string, any> = {}
+    variables: Record<string, any> = {},
+    objectReferences: Map<string, any> = new Map()
   ): string {
     // Get compiler configuration
     const compilerConfig = template.compilerConfig || {};
@@ -346,11 +353,17 @@ export class ITSCompiler {
     // Reference data: variables named by placeholder dataSource configs are
     // rendered once above the template as context the model must not output
     const dataSources = collectDataSources(content);
+    for (const name of objectReferences.keys()) {
+      if (!dataSources.some(request => request.name === name)) {
+        dataSources.push({ name, limit: null });
+      }
+    }
     const referenceParts: string[] = [];
     if (dataSources.length > 0) {
       referenceParts.push('REFERENCE DATA', '');
       for (const { name, limit } of dataSources) {
-        if (!(name in variables)) {
+        const value = name in variables ? variables[name] : objectReferences.get(name);
+        if (value === undefined) {
           throw new ITSCompilationError(
             `Unknown data source '${name}': no variable with that name`,
             undefined,
@@ -358,7 +371,7 @@ export class ITSCompiler {
             'data_source'
           );
         }
-        referenceParts.push(`### ${name}`, '', renderDataSource(variables[name], limit), '');
+        referenceParts.push(`### ${name}`, '', renderDataSource(value, limit), '');
       }
     }
     const processingInstructions =
