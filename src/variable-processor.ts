@@ -97,11 +97,94 @@ export class VariableProcessor {
    * Resolve a variable reference like "user.name" or "items[0]"
    */
   resolveVariableReference(varRef: string, variables: Record<string, any>): any {
+    // Collection functions are a suffix chain applied after path resolution
+    const { basePath, calls } = this.parseFunctionChain(varRef);
+
     // Validate reference syntax
-    if (!this.isValidVariableReference(varRef)) {
+    if (!this.isValidVariableReference(basePath)) {
       throw new ITSVariableError(`Invalid variable reference syntax: ${varRef}`, varRef);
     }
+    if (calls.length > 0) {
+      const base = this.resolvePath(basePath, variables);
+      return calls.reduce((value, call) => this.applyCollectionFunction(value, call, varRef), base);
+    }
+    return this.resolvePath(basePath, variables);
+  }
 
+  private parseFunctionChain(varRef: string): {
+    basePath: string;
+    calls: Array<{ name: string; arg: string | null }>;
+  } {
+    const calls: Array<{ name: string; arg: string | null }> = [];
+    let rest = varRef;
+    const pattern = /^(.*)\.(concat|sum|avg|min|max|top)\(\s*([A-Za-z_][A-Za-z0-9_]*|\d+)?\s*\)$/;
+    for (;;) {
+      const match = pattern.exec(rest);
+      if (!match) break;
+      calls.unshift({ name: match[2], arg: match[3] ?? null });
+      rest = match[1];
+    }
+    return { basePath: rest, calls };
+  }
+
+  private applyCollectionFunction(value: any, call: { name: string; arg: string | null }, varRef: string): any {
+    if (!Array.isArray(value)) {
+      throw new ITSVariableError(`Function ${call.name}() requires an array in reference '${varRef}'`, varRef);
+    }
+    if (call.name === 'top') {
+      const count = call.arg === null ? NaN : parseInt(call.arg, 10);
+      if (Number.isNaN(count) || count < 0) {
+        throw new ITSVariableError(`top() requires a non-negative integer in reference '${varRef}'`, varRef);
+      }
+      return value.slice(0, count);
+    }
+
+    const items = value.map(item => {
+      if (call.arg === null) {
+        if (item !== null && typeof item === 'object') {
+          throw new ITSVariableError(
+            `Function ${call.name}() requires a property name for object items in reference '${varRef}'`,
+            varRef
+          );
+        }
+        return item;
+      }
+      if (item === null || typeof item !== 'object' || Array.isArray(item) || !(call.arg in item)) {
+        throw new ITSVariableError(`Property '${call.arg}' not found on every item in reference '${varRef}'`, varRef);
+      }
+      return item[call.arg];
+    });
+
+    if (call.name === 'concat') {
+      return items.map(item => (item === null ? 'null' : String(item))).join(', ');
+    }
+
+    const numbers = items.map(item => {
+      if (typeof item !== 'number') {
+        throw new ITSVariableError(`Function ${call.name}() requires numeric values in reference '${varRef}'`, varRef);
+      }
+      return item;
+    });
+    switch (call.name) {
+      case 'sum':
+        return numbers.reduce((total, item) => total + item, 0);
+      case 'avg':
+        if (numbers.length === 0) {
+          throw new ITSVariableError(`avg() of an empty array in reference '${varRef}'`, varRef);
+        }
+        return numbers.reduce((total, item) => total + item, 0) / numbers.length;
+      case 'min':
+      case 'max':
+        if (numbers.length === 0) {
+          throw new ITSVariableError(`${call.name}() of an empty array in reference '${varRef}'`, varRef);
+        }
+        return call.name === 'min' ? Math.min(...numbers) : Math.max(...numbers);
+      default:
+        throw new ITSVariableError(`Unknown collection function '${call.name}' in reference '${varRef}'`, varRef);
+    }
+  }
+
+  private resolvePath(varRef: string, variables: Record<string, any>): any {
     const parts = this.parseVariableReference(varRef);
     let current: any = variables;
 
