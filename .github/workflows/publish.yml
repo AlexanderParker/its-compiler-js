@@ -7,6 +7,11 @@ on:
   # Lets a failed release be retried without moving or recreating the tag.
   workflow_dispatch:
 
+# Stated explicitly because the repository default is write. Jobs that need
+# more say so themselves; nothing inherits write access.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

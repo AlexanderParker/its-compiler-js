@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main, master]
 
+# Stated explicitly because the repository default is write. Jobs that need
+# more say so themselves; nothing inherits write access.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
