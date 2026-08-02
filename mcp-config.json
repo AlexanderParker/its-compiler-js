@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+        "its-compiler": {
+            "command": "node",
+            "args": [
+                "./node_modules/its-compiler-js/dist/mcp-server.js"
+            ],
+            "description": "ITS Compiler for converting templates to AI prompts",
+            "capabilities": {
+                "tools": true
+            },
+            "env": {
+                "NODE_ENV": "production"
+            }
+        }
+    }
+}

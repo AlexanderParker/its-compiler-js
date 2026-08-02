@@ -93,6 +93,99 @@ npx its-compile template.json --allow-http --timeout 30
 npx its-compile template.json --watch --verbose
 ```
 
+## MCP Server (Model Context Protocol)
+
+The ITS Compiler includes an MCP server that allows AI assistants to compile templates programmatically.
+
+### Starting the MCP Server
+
+```bash
+# Start the MCP server
+npx its-mcp-server
+
+# Or if installed globally
+its-mcp-server
+```
+
+### MCP Configuration
+
+Add this to your MCP configuration file (e.g., `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "its-compiler": {
+      "command": "npx",
+      "args": ["its-mcp-server"],
+      "description": "ITS Compiler for converting templates to AI prompts"
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+The MCP server provides three tools:
+
+#### `its_compile`
+
+Compile an ITS template into an AI prompt.
+
+**Parameters:**
+
+- `template` (string|object): The ITS template to compile
+- `variables` (object, optional): Variables to substitute in the template
+- `options` (object, optional): Compilation options
+  - `baseUrl` (string): Base URL for resolving relative schema references
+  - `allowHttp` (boolean): Allow HTTP URLs (default: false)
+  - `timeout` (number): Network timeout in seconds (default: 10)
+  - `strict` (boolean): Enable strict validation mode (default: false)
+
+#### `its_compile_file`
+
+Compile an ITS template file into an AI prompt.
+
+**Parameters:**
+
+- `templatePath` (string): Path to the ITS template JSON file
+- `variables` (object, optional): Variables to substitute in the template
+- `options` (object, optional): Same as `its_compile`
+
+#### `its_validate`
+
+Validate an ITS template without compiling.
+
+**Parameters:**
+
+- `template` (string|object): The ITS template to validate
+- `baseUrl` (string, optional): Base URL for resolving relative schema references
+
+### MCP Usage Example
+
+When the MCP server is running and configured, AI assistants can use it like this:
+
+```typescript
+// Compile a template
+const result = await its_compile({
+  template: {
+    version: '1.0.0',
+    content: [{ type: 'text', text: 'Hello ${name}!' }],
+  },
+  variables: { name: 'World' },
+});
+
+// Validate a template
+const validation = await its_validate({
+  template: myTemplate,
+});
+
+// Compile from file
+const fileResult = await its_compile_file({
+  templatePath: './my-template.json',
+  variables: { product: 'smartphone' },
+});
+```
+
 ## API Usage
 
 ### Quick Start
