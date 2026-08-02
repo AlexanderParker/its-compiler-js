@@ -66,6 +66,17 @@ jobs:
       - name: Update npm
         run: npm install -g npm@latest
 
+      # Fails fast with a readable reason rather than letting npm report a
+      # bare ENEEDAUTH, which says nothing about which precondition is missing.
+      - name: Preflight
+        run: |
+          echo "node $(node --version), npm $(npm --version)"
+          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "::error::No OIDC token endpoint. id-token: write was not granted to this job."
+            exit 1
+          fi
+          echo "OIDC token endpoint is available"
+
       - name: Install dependencies
         run: npm ci
 
