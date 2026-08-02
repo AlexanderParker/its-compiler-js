@@ -11,6 +11,9 @@ on:
 # more say so themselves; nothing inherits write access.
 permissions:
   contents: read
+  # Declared at workflow level rather than on the job. A job-level grant does
+  # not elevate when the repository default is read; a workflow-level one does.
+  id-token: write
 
 jobs:
   test:
@@ -43,12 +46,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Publish to NPM
     needs: test # publish only runs if the tests pass
-
-    permissions:
-      contents: read
-      # Trusted publishing: lets GitHub mint the OIDC token npm exchanges for
-      # publish rights, so there is no NPM_TOKEN to store or rotate.
-      id-token: write
 
     steps:
       - name: Checkout
