@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  # Lets a failed release be retried without moving or recreating the tag.
+  workflow_dispatch:
 
 jobs:
   test:
@@ -53,7 +55,11 @@ jobs:
           # Trusted publishing needs Node 22.14 or later.
           node-version: '22'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          # registry-url is deliberately NOT set here. It makes setup-node write
+          # an .npmrc containing a placeholder auth token, which npm then uses
+          # in preference to the OIDC exchange. The publish authenticates as
+          # nobody and the registry answers 404, because it reports an
+          # unauthorised write as a missing package.
 
       # The npm bundled with Node 22 predates trusted publishing, which needs
       # npm 11.5.1 or later.
