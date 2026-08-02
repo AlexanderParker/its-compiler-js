@@ -12,12 +12,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -35,18 +35,30 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     name: Publish to NPM
-    needs: test # ← This ensures publish only runs if test succeeds
+    needs: test # publish only runs if the tests pass
+
+    permissions:
+      contents: read
+      # Trusted publishing: lets GitHub mint the OIDC token npm exchanges for
+      # publish rights, so there is no NPM_TOKEN to store or rotate.
+      id-token: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          # Trusted publishing needs Node 22.14 or later.
+          node-version: '22'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
+
+      # The npm bundled with Node 22 predates trusted publishing, which needs
+      # npm 11.5.1 or later.
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
@@ -54,7 +66,6 @@ jobs:
       - name: Build package
         run: npm run build
 
+      # Provenance is attached automatically when publishing this way.
       - name: Publish to NPM
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
