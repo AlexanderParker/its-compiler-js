@@ -45,9 +45,33 @@ export {
 export { ITSCompiler as default } from './compiler.js';
 
 /**
- * Package version
+ * Package version.
+ *
+ * Kept in step with package.json by a test rather than read at runtime, so no
+ * bundler has to resolve a JSON import to build for the browser.
  */
 export const VERSION = '1.3.0';
+
+/**
+ * The ITS specification version this compiler implements.
+ *
+ * Distinct from VERSION: the package version moves with fixes and features,
+ * while this moves only when the specification does. Matches
+ * __supported_schema_version__ in its-compiler (Python) and
+ * SupportedSchemaVersion in Its.Compiler (.NET), so all three answer the
+ * question the same way.
+ */
+export const SUPPORTED_SCHEMA_VERSION = '1.0';
+
+/** The ITS specification version this compiler implements. */
+export function getSupportedSchemaVersion(): string {
+  return SUPPORTED_SCHEMA_VERSION;
+}
+
+/** The current package version. */
+export function getVersion(): string {
+  return VERSION;
+}
 
 /**
  * Create a new ITS Compiler instance with default configuration
